@@ -1,10 +1,11 @@
 import axios from 'axios';
 
+// Change this section
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
 });
 
-// ✅ Attach token to every request
+// ... rest of your code (interceptors) stays the same ...
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -13,13 +14,11 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
-// ✅ Global auth failure handler
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       const isLoginPage = window.location.pathname === '/login';
-
       if (!isLoginPage) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
