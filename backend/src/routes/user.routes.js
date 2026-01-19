@@ -10,9 +10,11 @@ import {
     migrateStaff,         
     addToDepartment,
     toggleUserStatus,
-    updateUserPassword // 👈 ✅ 1. IMPORT THIS
+    updateUserPassword 
 } from '../controllers/user.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
+
+// 👇 ✅ CHANGE THIS LINE: Import from your Cloudinary config, not the old middleware
 import { upload } from '../middleware/upload.middleware.js';
 
 const router = express.Router();
@@ -26,9 +28,10 @@ router.put('/:id/status', protect, toggleUserStatus);
 // --- Profile Routes ---
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
-router.put('/profile/image', protect, upload.single('image'), updateProfileImage);
 
-// ✅ 2. ADD THIS PASSWORD ROUTE
+// 👇 ✅ Ensure 'profilePicture' matches the name your Frontend uses in FormData.append('profilePicture', file)
+router.put('/profile/image', protect, upload.single('profilePicture'), updateProfileImage);
+
 router.put('/password', protect, updateUserPassword);
 
 // --- Department Management Routes ---

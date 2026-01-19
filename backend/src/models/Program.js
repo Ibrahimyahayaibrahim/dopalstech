@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 // 1. Schema for Chat Updates
 const updateSchema = new mongoose.Schema({
   text: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // ✅ LINKED TO USER MODEL
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   date: { type: Date, default: Date.now }
 });
 
@@ -36,7 +36,6 @@ const programSchema = mongoose.Schema({
   customSuffix: { type: String }, 
   versionLabel: { type: String }, 
   
-  // ✅ Date is optional (Parent blueprints don't need dates)
   date: { type: Date }, 
   
   department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
@@ -45,31 +44,27 @@ const programSchema = mongoose.Schema({
   cost: { type: Number, default: 0 },
   description: { type: String },
   
-  // ✅ Venue is optional
   venue: { type: String },
-  
   frequency: { type: String }, 
+  
+  // ✅ Cloudinary URLs stored here
   flyer: { type: String },
   proposal: { type: String },
+
   courseTitle: { type: String },
-  
-  // For Pitch-IT or similar
   startupsCount: { type: Number, default: 0 },
 
   registration: {
     isOpen: { type: Boolean, default: true },
     deadline: { type: Date },
-    // ✅ Sparse: true ensures unique requirement is ignored if field is missing (good for drafts)
     linkSlug: { type: String, unique: true, sparse: true }, 
     formFields: [formFieldSchema] 
   },
 
-  updates: [updateSchema], // Chat History
-  
+  updates: [updateSchema], 
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Participant' }],
-  participantsCount: { type: Number, default: 0 }, // Expected Attendees
+  participantsCount: { type: Number, default: 0 }, 
 
-  // Post-Event / Completion Data
   actualAttendance: { type: Number },
   actualDate: {
       start: { type: Date },

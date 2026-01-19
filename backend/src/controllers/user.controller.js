@@ -215,29 +215,31 @@ export const updateUserProfile = async (req, res) => {
     }
 };
 
-// --- 5. UPDATE PROFILE IMAGE ---
+// --- 5. UPDATE PROFILE IMAGE (CLOUDINARY) ---
 export const updateProfileImage = async (req, res) => {
     try {
+        // Cloudinary handles the upload before this function runs.
+        // If successful, 'req.file' will contain the Cloudinary URL in 'req.file.path'
         if (!req.file) {
             return res.status(400).json({ message: "No image file provided" });
         }
 
-        const imagePath = `/uploads/${req.file.filename}`;
         const user = await User.findById(req.user._id);
         
         if (user) {
-            user.profilePicture = imagePath;
+            // Save the remote Cloudinary URL (starts with https://res.cloudinary.com/...)
+            user.profilePicture = req.file.path; 
             await user.save();
 
             res.json({
                 message: "Image uploaded successfully",
-                profilePicture: imagePath
+                profilePicture: user.profilePicture
             });
         } else {
             res.status(404).json({ message: "User not found" });
         }
     } catch (error) {
-        console.error(error);
+        console.error("Image Upload Error:", error);
         res.status(500).json({ message: "Server error uploading image" });
     }
 };

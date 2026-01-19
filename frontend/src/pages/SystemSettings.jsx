@@ -66,8 +66,7 @@ const SystemSettings = () => {
       if (!file) return;
       
       const formData = new FormData();
-      formData.append('image', file);
-
+      formData.append('profilePicture', file); // ✅ Must match upload.single('profilePicture')
       try {
           // ✅ FIX: Changed from API.post to API.put AND fixed the URL path
           const { data } = await API.put('/users/profile/image', formData, { 

@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../services/api';
-import EmojiPicker from 'emoji-picker-react'; // ✅ IMPORTED
+import EmojiPicker from 'emoji-picker-react'; 
 import { 
   Users, Calendar, CheckCircle, Clock, Link as LinkIcon, 
   ArrowLeft, Download, Edit3, Layers, 
   ExternalLink, Copy, ChevronRight,
   MessageSquare, Plus, ShieldAlert,
-  ToggleLeft, ToggleRight, Settings, Smile // ✅ IMPORTED SMILE
+  ToggleLeft, ToggleRight, Settings, Smile 
 } from 'lucide-react';
 
 // Modals
@@ -18,15 +18,24 @@ import ManageParticipantsModal from '../components/ManageParticipantsModal';
 
 // --- HELPER: DATE FORMATTING FOR CHAT ---
 const getChatDateLabel = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
+  const date = new Date(dateString);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === now.toDateString()) return "Today";
-    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
-    
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (date.toDateString() === now.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+// --- ✅ NEW HELPER: HANDLE CLOUDINARY VS LOCAL FILES ---
+const getFileUrl = (filePath) => {
+  if (!filePath) return '';
+  // If it's a Cloudinary URL (starts with http/https), return as is
+  if (filePath.startsWith('http')) return filePath;
+  // If it's a local file, append the localhost URL (and fix windows backslashes)
+  return `http://localhost:5000/${filePath.replace(/\\/g, '/')}`;
 };
 
 const ProgramDetails = () => {
@@ -49,23 +58,21 @@ const ProgramDetails = () => {
   const [updateText, setUpdateText] = useState('');
   const [sendingUpdate, setSendingUpdate] = useState(false);
   const [regDate, setRegDate] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // ✅ EMOJI STATE
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   
   // Auto-Scroll Ref
   const chatEndRef = useRef(null);
 
-  // ✅ HELPER: Scroll to bottom manually
   const scrollToBottom = () => {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // ✅ HELPER: Add Emoji
   const onEmojiClick = (emojiObject) => {
     setUpdateText(prev => prev + emojiObject.emoji);
-    setShowEmojiPicker(false); // Close picker after selection (optional)
+    setShowEmojiPicker(false); 
   };
 
-  // --- 1. FETCH DATA (With Silent Poll Support) ---
+  // --- 1. FETCH DATA ---
   const fetchProgram = async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
@@ -75,7 +82,6 @@ const ProgramDetails = () => {
           setRegDate(new Date(data.registration.deadline).toISOString().split('T')[0]);
       }
       
-      // Only scroll to bottom on the VERY FIRST load
       if (!isBackground) {
           setTimeout(scrollToBottom, 200); 
       }
@@ -87,14 +93,12 @@ const ProgramDetails = () => {
     }
   };
 
-  // Initial Load
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user')) || {};
     setCurrentUser(user);
     fetchProgram(); 
   }, [id]);
 
-  // ✅ REAL-TIME POLLING (Checks every 5 seconds)
   useEffect(() => {
       const interval = setInterval(() => {
           fetchProgram(true); 
@@ -108,9 +112,14 @@ const ProgramDetails = () => {
 
   // --- 3. HANDLERS ---
   const copyLink = () => {
-    const url = `${window.location.origin}/register/${program.registration.linkSlug}`;
+    // 1. Priority: Use the "Live" URL defined in .env
+    // 2. Fallback: Use the current browser URL (window.location.origin)
+    const baseUrl = import.meta.env.VITE_CLIENT_URL || window.location.origin;
+    
+    const url = `${baseUrl}/register/${program.registration.linkSlug}`;
+    
     navigator.clipboard.writeText(url);
-    alert("Registration link copied!");
+    alert("Registration link copied to clipboard!");
   };
 
   const handleToggleRegistration = async () => {
@@ -157,8 +166,9 @@ const ProgramDetails = () => {
   const isParent = !program.parentProgram && program.structure !== 'One-Time';
   const isChild = !!program.parentProgram;
   
+  // ✅ FIX 1: HERO IMAGE URL
   const bgImage = program.flyer 
-    ? `url(http://localhost:5000/${program.flyer.replace(/\\/g, '/')})` 
+    ? `url(${getFileUrl(program.flyer)})` 
     : 'linear-gradient(to right, #059669, #10b981)';
 
   return (
@@ -290,7 +300,7 @@ const ProgramDetails = () => {
                   ) : <p className="text-gray-400 text-sm italic text-center py-4">No registrations yet.</p>}
               </div>
 
-              {/* ✅ CHAT / UPDATES */}
+              {/* CHAT / UPDATES */}
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col h-[600px]">
                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg shrink-0">
                       <MessageSquare size={20} className="text-indigo-500"/> Team Chat
@@ -302,13 +312,11 @@ const ProgramDetails = () => {
                           program.updates.map((update, idx) => {
                               const isMe = update.user?._id === currentUser._id || update.user === currentUser._id;
                               
-                              // ✅ DATE GROUPING LOGIC
                               const showDateSeparator = idx === 0 || 
                                   getChatDateLabel(update.date) !== getChatDateLabel(program.updates[idx - 1].date);
 
                               return (
                                   <div key={idx} className="flex flex-col w-full">
-                                      {/* Separator */}
                                       {showDateSeparator && (
                                           <div className="flex justify-center my-4 animate-in fade-in">
                                               <span className="bg-gray-200 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide">
@@ -317,7 +325,6 @@ const ProgramDetails = () => {
                                           </div>
                                       )}
 
-                                      {/* Message Row */}
                                       <div className={`flex gap-3 items-end animate-in fade-in slide-in-from-bottom-2 duration-300 w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
                                           {!isMe && (
                                               <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm border border-indigo-200 mb-1">
@@ -339,8 +346,8 @@ const ProgramDetails = () => {
 
                                               <div className={`p-3 text-sm shadow-sm leading-relaxed whitespace-pre-wrap ${
                                                   isMe 
-                                                    ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-none' 
-                                                    : 'bg-white text-gray-700 rounded-2xl rounded-tl-none border border-gray-200' 
+                                                  ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-none' 
+                                                  : 'bg-white text-gray-700 rounded-2xl rounded-tl-none border border-gray-200' 
                                               }`}>
                                                   {update.text}
                                               </div>
@@ -358,10 +365,9 @@ const ProgramDetails = () => {
                       <div ref={chatEndRef} /> 
                   </div>
 
-                  {/* ✅ INPUT AREA WITH EMOJIS */}
+                  {/* INPUT AREA */}
                   {canChat && (
                       <div className="flex items-end gap-2 bg-white p-1 relative">
-                          {/* EMOJI PICKER POPUP */}
                           {showEmojiPicker && (
                               <div className="absolute bottom-16 left-0 z-50 shadow-2xl rounded-2xl animate-in slide-in-from-bottom-5">
                                   <EmojiPicker 
@@ -373,7 +379,6 @@ const ProgramDetails = () => {
                               </div>
                           )}
 
-                          {/* SMILE BUTTON */}
                           <button 
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                             className="p-3 mb-1 text-gray-400 hover:text-emerald-500 transition-colors"
@@ -440,16 +445,17 @@ const ProgramDetails = () => {
                 </>
               )}
 
+              {/* ✅ FIX 2 & 3: DOCUMENT LINKS */}
               <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Download size={18} className="text-purple-500"/> Documents</h3>
-                   <div className="space-y-2">
+                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Download size={18} className="text-purple-500"/> Documents</h3>
+                    <div className="space-y-2">
                       {program.proposal ? (
-                          <a href={`http://localhost:5000/${program.proposal}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100 hover:bg-purple-100"><LinkIcon size={14} className="text-purple-600"/><span className="text-xs font-bold text-purple-700 truncate">Proposal.pdf</span></a>
+                          <a href={getFileUrl(program.proposal)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100 hover:bg-purple-100"><LinkIcon size={14} className="text-purple-600"/><span className="text-xs font-bold text-purple-700 truncate">Proposal.pdf</span></a>
                       ) : <p className="text-xs text-gray-400 italic pl-2">No proposal.</p>}
                       {program.flyer ? (
-                          <a href={`http://localhost:5000/${program.flyer}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100 hover:bg-orange-100"><LinkIcon size={14} className="text-orange-600"/><span className="text-xs font-bold text-orange-700 truncate">Flyer.jpg</span></a>
+                          <a href={getFileUrl(program.flyer)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100 hover:bg-orange-100"><LinkIcon size={14} className="text-orange-600"/><span className="text-xs font-bold text-orange-700 truncate">Flyer.jpg</span></a>
                       ) : <p className="text-xs text-gray-400 italic pl-2">No flyer.</p>}
-                   </div>
+                    </div>
               </div>
 
               {program.status === 'Completed' && (
@@ -464,8 +470,9 @@ const ProgramDetails = () => {
                                   View Event Photos
                               </a>
                           )}
+                          {/* ✅ FIX 4: FINAL DOCUMENT LINK */}
                           {program.finalDocument && (
-                              <a href={`http://localhost:5000/${program.finalDocument}`} target="_blank" rel="noreferrer" className="block text-emerald-600 underline hover:text-emerald-800">
+                              <a href={getFileUrl(program.finalDocument)} target="_blank" rel="noreferrer" className="block text-emerald-600 underline hover:text-emerald-800">
                                   View Final Report
                               </a>
                           )}
