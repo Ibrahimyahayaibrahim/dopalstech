@@ -33,8 +33,6 @@ export const protect = async (req, res, next) => {
       next();
     } catch (error) {
       console.error("Auth Middleware Error:", error.message);
-      // Differentiate between expired token and invalid token if needed, 
-      // but generic 401 is safer for production security.
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
   } else {
@@ -59,4 +57,14 @@ export const authorize = (...roles) => {
     
     next();
   };
+};
+
+// --- 3. ADMIN SHORTCUT (Missing Export) ---
+// ✅ This is what caused your crash. We add it here to fix it.
+export const admin = (req, res, next) => {
+    if (req.user && (req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN')) {
+        next();
+    } else {
+        res.status(401).json({ message: 'Not authorized as an admin' });
+    }
 };

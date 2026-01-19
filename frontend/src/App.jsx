@@ -21,15 +21,13 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         
-        {/* Public Registration Route */}
-        <Route path="/register/program/:id" element={<PublicRegistration />} />
+        {/* ✅ FIXED: Removed '/program' to match your generated links */}
+        {/* Link format: http://localhost:5173/register/some-slug-123 */}
+        <Route path="/register/:id" element={<PublicRegistration />} />
 
         {/* --- 2. PROTECTED ROUTES (Require Login) --- */}
         <Route element={<ProtectedRoute />}>
             
-            {/* ✅ REMOVED: Old Onboarding Routes (/change-password & /complete-profile) */}
-            {/* The Dashboard Modal now handles all onboarding steps. */}
-
             {/* Core App */}
             <Route path="/dashboard" element={<AdminDashboard />} />
             

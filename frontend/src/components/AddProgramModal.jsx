@@ -7,7 +7,6 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
-  // --- FORM STATE ---
   const [formData, setFormData] = useState({
     name: '',
     type: 'Training',
@@ -17,18 +16,17 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
     frequency: '', 
     customSuffix: '',
     cost: 0,
+    venue: '',              
+    participantsCount: '',  
     formFields: [] 
   });
 
-  // --- FILE STATE ---
   const [flyerFile, setFlyerFile] = useState(null);
   const [proposalFile, setProposalFile] = useState(null);
 
-  // Reset or Pre-fill when modal opens
   useEffect(() => {
     if (isOpen) {
         if (parentProgram) {
-            // Child Mode
             setFormData({
                 name: '', 
                 type: parentProgram.type,
@@ -38,11 +36,16 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
                 frequency: '',
                 customSuffix: '',
                 cost: parentProgram.cost,
-                formFields: []
+                venue: parentProgram.venue || '',
+                participantsCount: '',
+                formFields: [] 
             });
         } else {
-            // Parent Mode
-            setFormData({ name: '', type: 'Training', structure: 'One-Time', description: '', date: '', frequency: '', customSuffix: '', cost: 0, formFields: [] });
+            setFormData({ 
+                name: '', type: 'Training', structure: 'One-Time', description: '', 
+                date: '', frequency: '', customSuffix: '', cost: 0, 
+                venue: '', participantsCount: '', formFields: [] 
+            });
         }
         setFlyerFile(null);
         setProposalFile(null);
@@ -52,7 +55,6 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
 
   if (!isOpen) return null;
 
-  // --- HANDLERS ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -71,110 +73,165 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
     try {
       setLoading(true);
       
-      // 1. Prepare FormData (Required for File Uploads)
       const data = new FormData();
       
-      // Append standard fields
-      Object.keys(formData).forEach(key => {
-          // If formFields is an array, we must stringify it for FormData
-          if (key === 'formFields') {
-              data.append(key, JSON.stringify(formData[key]));
-          } else {
-              data.append(key, formData[key]);
-          }
-      });
+      // --- CRITICAL FIX FOR STAFF CREATION ---
+      let activeDeptId = departmentId;
 
-      // Append IDs
-      data.append('departmentId', departmentId || parentProgram?.department?._id || parentProgram?.department);
+      // 1. If Child Program, inherit from Parent
       if (parentProgram) {
-          data.append('parentId', parentProgram._id);
-          // Handle Naming Logic for FormData
-          if (parentProgram.structure === 'Recurring') {
-             const derivedName = `${parentProgram.name} - ${formData.customSuffix || new Date(formData.date).toLocaleDateString()}`;
-             data.append('name', derivedName);
-          } else if (parentProgram.structure === 'Numerical') {
-             data.append('name', "Auto-Generated");
+          activeDeptId = parentProgram.department?._id || parentProgram.department;
+      }
+
+      // 2. If still missing (e.g. Staff on Dashboard), try to find it in User Profile
+      if (!activeDeptId) {
+          const user = JSON.parse(localStorage.getItem('user'));
+          
+          if (user && user.departments && user.departments.length > 0) {
+              // Handle case where department is an Object { _id: "..." } OR just a String "..."
+              const firstDept = user.departments[0];
+              activeDeptId = firstDept._id || firstDept; 
           }
       }
 
-      // Append Files
+      // 3. Final Safety Check
+      if (!activeDeptId) {
+          alert("Error: Could not identify your Department. Please contact Admin.");
+          setLoading(false);
+          return;
+      }
+      
+      data.append('departmentId', activeDeptId);
+      // ---------------------------------------
+
+      let finalName = formData.name;
+      if (parentProgram && !finalName) {
+          const suffix = formData.customSuffix || new Date(formData.date || Date.now()).toLocaleDateString();
+          finalName = `${parentProgram.name} - ${suffix}`;
+      }
+      data.append('name', finalName);
+
+      data.append('type', formData.type);
+      data.append('structure', formData.structure);
+      data.append('description', formData.description);
+      data.append('date', formData.date);
+      data.append('cost', formData.cost);
+      data.append('venue', formData.venue); 
+      data.append('participantsCount', formData.participantsCount);
+
+      if (formData.frequency) data.append('frequency', formData.frequency);
+      if (formData.customSuffix) data.append('customSuffix', formData.customSuffix);
+
+      if (formData.formFields && formData.formFields.length > 0) {
+        data.append('formFields', JSON.stringify(formData.formFields));
+      }
+
+      if (parentProgram) {
+          data.append('parentId', parentProgram._id);
+      }
+
       if (flyerFile) data.append('flyer', flyerFile);
       if (proposalFile) data.append('proposal', proposalFile);
 
-      // 2. Send Request (Content-Type header is auto-set by axios for FormData)
       await API.post('/programs', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setLoading(false);
-      alert(parentProgram ? "Version created successfully!" : "Program created successfully!"); 
+      alert(parentProgram ? "New version created successfully!" : "Program created successfully!"); 
       onSuccess(); 
       onClose();   
 
     } catch (error) {
       console.error(error);
-      alert('Failed to create program. Check console for details.');
+      const msg = error.response?.data?.message || "Failed to create program.";
+      alert(msg);
       setLoading(false);
     }
   };
 
-  // --- RENDER STEPS ---
-  
   const renderStep1 = () => (
     <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
         
         {parentProgram && (
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center gap-3 mb-4">
-                <Layers className="text-blue-600" size={20}/>
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center gap-4 mb-4">
+                <div className="bg-white p-2 rounded-full text-blue-600 shadow-sm"><Layers size={20}/></div>
                 <div>
                     <p className="text-xs font-bold text-blue-600 uppercase">Creating Version For:</p>
-                    <p className="font-bold text-gray-800">{parentProgram.name}</p>
+                    <p className="font-bold text-gray-800 text-lg">{parentProgram.name}</p>
                 </div>
             </div>
         )}
 
-        {!parentProgram && (
-            <div>
-                <label className="text-xs font-bold text-gray-500 uppercase">Program Name</label>
-                <input name="name" value={formData.name} onChange={handleChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500 transition-all font-bold text-gray-800" placeholder="e.g. Media Internship 2026" autoFocus />
-            </div>
-        )}
+        <div>
+            <label className="text-xs font-bold text-gray-500 uppercase">
+                {parentProgram ? 'Version Name (Optional)' : 'Program Name'}
+            </label>
+            <input 
+                name="name" 
+                value={formData.name} 
+                onChange={handleChange} 
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500 transition-all font-bold text-gray-800 placeholder-gray-300" 
+                placeholder={parentProgram ? "Leave empty to auto-generate" : "e.g. Media Internship 2026"} 
+                autoFocus={!parentProgram} 
+            />
+        </div>
 
         {parentProgram && (
             <div>
                 <label className="text-xs font-bold text-gray-500 uppercase">
-                    {parentProgram.structure === 'Numerical' ? 'Batch Name / Suffix' : 'Version Label'}
+                    {parentProgram.structure === 'Numerical' ? 'Batch Suffix' : 'Version Label'}
                 </label>
                 <input 
                     name="customSuffix" 
                     value={formData.customSuffix} 
                     onChange={handleChange} 
                     className="w-full p-3 bg-white border border-emerald-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-200 font-bold text-gray-800" 
-                    placeholder={parentProgram.structure === 'Numerical' ? "e.g. Cohort A" : "e.g. Jan 15 Meeting"} 
-                    autoFocus
+                    placeholder={parentProgram.structure === 'Numerical' ? "e.g. Batch 5" : "e.g. Jan Cohort"} 
                 />
             </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
-            {!parentProgram && (
-                <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
-                    <select name="type" value={formData.type} onChange={handleChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500">
-                        <option value="Training">Training</option>
-                        <option value="Event">Event</option>
-                        <option value="Project">Project</option>
-                        <option value="Pitch-IT">Pitch-IT</option>
-                    </select>
-                </div>
-            )}
-            <div className={parentProgram ? "col-span-2" : ""}>
+            <div>
+                <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
+                <select name="type" value={formData.type} onChange={handleChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500">
+                    <option value="Training">Training</option>
+                    <option value="Event">Event</option>
+                    <option value="Project">Project</option>
+                    <option value="Pitch-IT">Pitch-IT</option>
+                </select>
+            </div>
+            <div>
                 <label className="text-xs font-bold text-gray-500 uppercase">Start Date</label>
                 <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500" />
             </div>
         </div>
 
-        {/* STRUCTURE SELECTION */}
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="text-xs font-bold text-gray-500 uppercase">Venue / Location</label>
+                <input 
+                    name="venue" 
+                    value={formData.venue} 
+                    onChange={handleChange} 
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500 text-sm font-bold" 
+                    placeholder="e.g. Main Hall or Zoom" 
+                />
+            </div>
+            <div>
+                <label className="text-xs font-bold text-gray-500 uppercase">Expected Attendees</label>
+                <input 
+                    type="number" 
+                    name="participantsCount" 
+                    value={formData.participantsCount} 
+                    onChange={handleChange} 
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500 text-sm font-bold" 
+                    placeholder="0" 
+                />
+            </div>
+        </div>
+
         {!parentProgram && (
             <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
                 <label className="text-xs font-bold text-emerald-700 uppercase mb-3 block">Program Structure</label>
@@ -204,10 +261,7 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
             </div>
         )}
 
-        {/* --- FILE UPLOADS SECTION --- */}
         <div className="grid grid-cols-2 gap-4 pt-2">
-            
-            {/* Flyer Upload */}
             <div className="relative group">
                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Program Flyer</label>
                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-all h-24 relative overflow-hidden">
@@ -226,7 +280,6 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
                 </div>
             </div>
 
-            {/* Proposal Upload */}
             <div className="relative group">
                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Proposal Doc</label>
                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all h-24 relative overflow-hidden">
@@ -284,12 +337,11 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
             <h3 className="text-2xl font-bold text-gray-800">Ready to Launch?</h3>
             <p className="text-gray-500 max-w-xs mx-auto mt-2">
                 {parentProgram 
-                    ? `Creating new version: "${formData.customSuffix || 'Next Version'}"`
+                    ? (formData.name ? `Creating: "${formData.name}"` : `Creating new version...`)
                     : `Creating "${formData.name}"`
                 }
             </p>
         </div>
-        {/* File indicators */}
         <div className="flex justify-center gap-4 text-xs font-bold text-gray-400">
             {flyerFile && <span className="flex items-center gap-1 text-emerald-600"><CheckCircle size={12}/> Flyer Attached</span>}
             {proposalFile && <span className="flex items-center gap-1 text-blue-600"><CheckCircle size={12}/> Proposal Attached</span>}

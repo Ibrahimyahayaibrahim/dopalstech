@@ -5,33 +5,33 @@ import Program from '../models/Program.js';
 // @desc    Create a new department
 export const createDepartment = async (req, res) => {
   try {
-    // 1. Get User ID from the dropdown selection (req.body.headOfDepartment is now an ID)
     const { name, headOfDepartment, description } = req.body; 
 
     if (!name) return res.status(400).json({ message: 'Name is required' });
 
-    // 2. Create the Department
+    // Create the Department
     const department = await Department.create({
       name,
-      headOfDepartment: headOfDepartment || null, // Stores User ID
+      headOfDepartment: headOfDepartment || null, 
       description,
     });
 
-    // 3. AUTOMATICALLY ADD USER TO DEPARTMENT
+    // If a Head is selected during creation, add this department to their profile
+    // AND upgrade their role to ADMIN automatically
     if (headOfDepartment) {
         await User.findByIdAndUpdate(headOfDepartment, {
-            $addToSet: { departments: department._id }, // Add dept ID to user's list
+            $addToSet: { departments: department._id },
+            role: 'ADMIN' 
         });
     }
 
-    // Return with programCount: 0 for the frontend list
     res.status(201).json({ ...department._doc, programCount: 0 });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get all departments
+// @desc    Get all departments (With Stats)
 export const getDepartments = async (req, res) => {
   try {
     const departments = await Department.aggregate([
@@ -58,17 +58,16 @@ export const getDepartments = async (req, res) => {
     ]);
 
     const departmentsWithStats = await Promise.all(departments.map(async (dept) => {
-        const existingAdmin = await User.findOne({ 
-            departments: dept._id, 
-            role: 'ADMIN' 
-        });
+        // Check if there is a designated Head of Department
+        const hasHead = dept.headOfDepartment ? true : false;
+        
         const staffCount = await User.countDocuments({ 
             departments: dept._id 
         });
         
         return { 
             ...dept, 
-            hasAdmin: !!existingAdmin, 
+            hasAdmin: hasHead, 
             staffCount: staffCount || 0 
         };
     }));
@@ -84,7 +83,7 @@ export const getDepartmentById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const department = await Department.findById(id); 
+    const department = await Department.findById(id).populate('headOfDepartment', 'name email profilePicture'); 
     
     if (!department) {
       return res.status(404).json({ message: 'Department not found' });
@@ -134,4 +133,122 @@ export const deleteDepartment = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// ---------------------------------------------------------
+// ✅ 1. REMOVE USER FROM DEPARTMENT (Logic Fixed)
+// ---------------------------------------------------------
+export const removeFromDepartment = async (req, res) => {
+    try {
+        const { userId, departmentId } = req.body;
+
+        const department = await Department.findById(departmentId);
+        
+        if (!department) {
+            return res.status(404).json({ message: 'Department not found' });
+        }
+
+        // 1. Remove Department from User's Profile
+        // Note: We do NOT change their role here automatically. 
+        // If they are an Admin elsewhere, they keep the role.
+        await User.findByIdAndUpdate(userId, {
+            $pull: { departments: departmentId }
+        });
+
+        // 2. Check if this user was the Head of Department
+        if (department.headOfDepartment && department.headOfDepartment.toString() === userId) {
+            // ✅ Fix: Just remove them. Do NOT auto-assign anyone else.
+            // Also downgrade them since they are no longer leading this dept.
+            department.headOfDepartment = null;
+            await department.save();
+
+            // Optional: Downgrade role to STAFF if they aren't leading other depts
+            // For safety, we can just set them to STAFF here.
+            await User.findByIdAndUpdate(userId, { role: 'STAFF' });
+        }
+
+        res.json({ message: 'User removed from department successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ---------------------------------------------------------
+// ✅ 2. ASSIGN ADMIN (Promote, Upgrade Role, Swap Old Admin)
+// ---------------------------------------------------------
+export const assignDepartmentAdmin = async (req, res) => {
+    try {
+        const { userId, departmentId } = req.body;
+
+        const department = await Department.findById(departmentId);
+        const user = await User.findById(userId);
+
+        if (!department || !user) {
+            return res.status(404).json({ message: "User or Department not found" });
+        }
+
+        // 1. Handle Existing Admin (Downgrade them)
+        if (department.headOfDepartment) {
+            const oldAdmin = await User.findById(department.headOfDepartment);
+            if (oldAdmin && oldAdmin._id.toString() !== userId) {
+                oldAdmin.role = 'STAFF'; // Downgrade old admin
+                await oldAdmin.save();
+            }
+        }
+
+        // 2. Assign NEW Admin
+        department.headOfDepartment = userId;
+        await department.save();
+
+        // 3. Update User: Add to Dept List & Upgrade Role
+        await User.findByIdAndUpdate(userId, {
+            $addToSet: { departments: departmentId },
+            role: 'ADMIN' // ✅ Force upgrade
+        });
+
+        res.json({ 
+            message: `Success! ${user.name} is now the Head of ${department.name}`,
+            department 
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ---------------------------------------------------------
+// ✅ 3. REVOKE ADMIN (Demote to Staff, Keep in Dept)
+// ---------------------------------------------------------
+export const revokeDepartmentAdmin = async (req, res) => {
+    try {
+        const { departmentId } = req.body;
+
+        const department = await Department.findById(departmentId);
+
+        if (!department) {
+            return res.status(404).json({ message: "Department not found" });
+        }
+
+        if (!department.headOfDepartment) {
+             return res.status(400).json({ message: "This department has no admin to remove." });
+        }
+
+        // 1. Find the current admin
+        const currentAdminId = department.headOfDepartment;
+        
+        // 2. Downgrade Role to STAFF
+        await User.findByIdAndUpdate(currentAdminId, {
+            role: 'STAFF' 
+        });
+
+        // 3. Remove from Department Head slot
+        department.headOfDepartment = null;
+        await department.save();
+
+        res.json({ message: "Department Admin removed. User is now regular Staff." });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };

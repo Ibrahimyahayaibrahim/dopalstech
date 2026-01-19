@@ -1,33 +1,52 @@
 import express from 'express';
 import { 
-  createProgram, getAllPrograms, getProgramsByDepartment, getProgramById, 
-  updateProgram, updateProgramStatus, markProgramComplete, addProgramUpdate,
-  addParticipants, addParticipantManually, importParticipants, removeParticipant 
-} from '../controllers/program.controller.js'; 
-import { protect } from '../middleware/auth.middleware.js';
-import { upload } from '../middleware/upload.middleware.js'; 
+    createProgram, 
+    getAllPrograms, 
+    getProgramById, 
+    updateProgram, 
+    updateProgramStatus,
+    markProgramComplete,
+    addProgramUpdate,
+    addParticipantManually,
+    importParticipants,
+    removeParticipant,
+    getPublicProgram,
+    registerParticipant,
+    getProgramsByDepartment
+} from '../controllers/program.controller.js';
+
+// Middleware
+import { protect, authorize } from '../middleware/auth.middleware.js';
+import { upload } from '../middleware/upload.middleware.js'; // Ensure you have this
 
 const router = express.Router();
 
-router.route('/')
-  .get(protect, getAllPrograms)
-  .post(protect, upload.fields([{ name: 'flyer', maxCount: 1 }, { name: 'proposal', maxCount: 1 }]), createProgram); 
+// --- PUBLIC ROUTES (Registration) ---
+router.get('/public/:id', getPublicProgram);
+router.post('/public/:programId/register', registerParticipant);
 
-router.get('/department/:departmentId', protect, getProgramsByDepartment);
+// --- PROTECTED ROUTES ---
+router.use(protect); // All routes below require login
 
-router.put('/:id/status', protect, updateProgramStatus);
+// 1. Program Management
+router.post('/', authorize('SUPER_ADMIN', 'ADMIN', 'STAFF'), upload.fields([{ name: 'flyer', maxCount: 1 }, { name: 'proposal', maxCount: 1 }]), createProgram);
+router.get('/', getAllPrograms);
+router.get('/department/:departmentId', getProgramsByDepartment);
+router.get('/:id', getProgramById);
+router.put('/:id', authorize('SUPER_ADMIN', 'ADMIN'), updateProgram);
 
-// ✅ UPDATED: Add 'upload.single' for the completion document
-router.put('/:id/complete', protect, upload.single('finalDocument'), markProgramComplete);
+// 2. Status & Actions
+router.put('/:id/status', authorize('SUPER_ADMIN', 'ADMIN'), updateProgramStatus);
 
-router.post('/:id/updates', protect, addProgramUpdate);
-router.post('/:id/participants', protect, addParticipants);
-router.post('/:id/participants/add', protect, addParticipantManually);
-router.post('/:id/participants/import', protect, importParticipants);
-router.delete('/:id/participants/:participantId', protect, removeParticipant);
+// ✅ NEW: Complete Program (With File Upload for Final Report)
+router.put('/:id/complete', authorize('SUPER_ADMIN', 'ADMIN'), upload.single('finalDocument'), markProgramComplete);
 
-router.route('/:id')
-  .get(protect, getProgramById)
-  .put(protect, upload.fields([{ name: 'flyer' }, { name: 'proposal' }]), updateProgram);
+// 3. Updates/Chat
+router.post('/:id/updates', addProgramUpdate);
+
+// 4. Participant Management
+router.post('/:id/participants/add', authorize('SUPER_ADMIN', 'ADMIN'), addParticipantManually);
+router.post('/:id/participants/import', authorize('SUPER_ADMIN', 'ADMIN'), importParticipants);
+router.delete('/:id/participants/:participantId', authorize('SUPER_ADMIN', 'ADMIN'), removeParticipant);
 
 export default router;

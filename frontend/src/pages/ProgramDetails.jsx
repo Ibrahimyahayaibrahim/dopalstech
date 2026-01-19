@@ -1,295 +1,484 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import EmojiPicker from 'emoji-picker-react'; // ✅ IMPORTED
 import { 
-  ArrowLeft, Calendar, User, FileText, Download, Edit2, Send, Clock, MapPin, 
-  DollarSign, Activity, Sparkles, ChevronRight, Users, Mail, Share2, Copy, Check, 
-  Lock, Unlock, CheckCircle, Layers, Plus, Hash, ArrowRight
+  Users, Calendar, CheckCircle, Clock, Link as LinkIcon, 
+  ArrowLeft, Download, Edit3, Layers, 
+  ExternalLink, Copy, ChevronRight,
+  MessageSquare, Plus, ShieldAlert,
+  ToggleLeft, ToggleRight, Settings, Smile // ✅ IMPORTED SMILE
 } from 'lucide-react';
-import EditProgramModal from '../components/EditProgramModal'; 
-import ManageParticipantsModal from '../components/ManageParticipantsModal'; 
-import CompleteProgramModal from '../components/CompleteProgramModal'; 
-import AddProgramModal from '../components/AddProgramModal'; 
 
-const BACKEND_URL = "http://localhost:5000"; 
+// Modals
+import AddProgramModal from '../components/AddProgramModal'; 
+import EditProgramModal from '../components/EditProgramModal'; 
+import CompleteProgramModal from '../components/CompleteProgramModal'; 
+import ManageParticipantsModal from '../components/ManageParticipantsModal'; 
+
+// --- HELPER: DATE FORMATTING FOR CHAT ---
+const getChatDateLabel = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === now.toDateString()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+    
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
 
 const ProgramDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data, setData] = useState(null); 
+  
+  const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [reportText, setReportText] = useState('');
-  const [copied, setCopied] = useState(false);
   
-  // Modals
+  // User Role Check
+  const [currentUser, setCurrentUser] = useState({});
+  
+  // Modal States
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
-  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false); 
-  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false); 
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [isParticipantModalOpen, setIsParticipantModalOpen] = useState(false); 
 
-  const messagesEndRef = useRef(null);
-
-  let user = {};
-  try {
-      const stored = localStorage.getItem('user');
-      user = stored ? JSON.parse(stored) : {};
-  } catch (e) { console.error("User parse error", e); }
+  // Chat State
+  const [updateText, setUpdateText] = useState('');
+  const [sendingUpdate, setSendingUpdate] = useState(false);
+  const [regDate, setRegDate] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // ✅ EMOJI STATE
   
-  const fetchProgram = async () => {
+  // Auto-Scroll Ref
+  const chatEndRef = useRef(null);
+
+  // ✅ HELPER: Scroll to bottom manually
+  const scrollToBottom = () => {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // ✅ HELPER: Add Emoji
+  const onEmojiClick = (emojiObject) => {
+    setUpdateText(prev => prev + emojiObject.emoji);
+    setShowEmojiPicker(false); // Close picker after selection (optional)
+  };
+
+  // --- 1. FETCH DATA (With Silent Poll Support) ---
+  const fetchProgram = async (isBackground = false) => {
     try {
+      if (!isBackground) setLoading(true);
       const { data } = await API.get(`/programs/${id}`);
-      setData(data);
-    } catch (err) { console.error(err); } 
-    finally { setLoading(false); }
+      setProgram(data);
+      if(data.registration?.deadline) {
+          setRegDate(new Date(data.registration.deadline).toISOString().split('T')[0]);
+      }
+      
+      // Only scroll to bottom on the VERY FIRST load
+      if (!isBackground) {
+          setTimeout(scrollToBottom, 200); 
+      }
+
+    } catch (error) {
+      console.error("Failed to load program", error);
+    } finally {
+      if (!isBackground) setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchProgram(); }, [id]);
+  // Initial Load
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user')) || {};
+    setCurrentUser(user);
+    fetchProgram(); 
+  }, [id]);
 
-  // --- HELPERS ---
-  const safeFormatDate = (dateString) => {
-    if (!dateString) return 'Date TBD';
-    try {
-        const date = new Date(dateString);
-        return isNaN(date.getTime()) ? 'Date TBD' : date.toLocaleDateString(undefined, { dateStyle: 'long' });
-    } catch (e) { return 'Invalid Date'; }
+  // ✅ REAL-TIME POLLING (Checks every 5 seconds)
+  useEffect(() => {
+      const interval = setInterval(() => {
+          fetchProgram(true); 
+      }, 5000); 
+      return () => clearInterval(interval);
+  }, [id]);
+
+  // --- 2. PERMISSIONS LOGIC ---
+  const canManage = currentUser.role === 'ADMIN' || currentUser.role === 'SUPER_ADMIN';
+  const canChat = canManage || currentUser.role === 'STAFF';
+
+  // --- 3. HANDLERS ---
+  const copyLink = () => {
+    const url = `${window.location.origin}/register/${program.registration.linkSlug}`;
+    navigator.clipboard.writeText(url);
+    alert("Registration link copied!");
   };
 
-  const safeFormatTime = (dateString) => {
-      if (!dateString) return '';
+  const handleToggleRegistration = async () => {
+      if(!canManage) return;
       try {
-          const date = new Date(dateString);
-          return isNaN(date.getTime()) ? '' : date.toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute:'2-digit'});
-      } catch (e) { return ''; }
+          const newState = !program.registration.isOpen;
+          await API.put(`/programs/${id}`, { registrationOpen: newState });
+          fetchProgram(); 
+      } catch (error) { alert("Failed to toggle registration."); }
   };
 
-  const getSafeInputDate = (dateStr) => {
-    if (!dateStr) return '';
-    try {
-        const date = new Date(dateStr);
-        return isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 16);
-    } catch (e) { return ''; }
+  const handleDateChange = async (e) => {
+      if(!canManage) return;
+      const newDate = e.target.value;
+      setRegDate(newDate);
+      try { await API.put(`/programs/${id}`, { registrationDeadline: newDate }); } 
+      catch (error) { alert("Failed to update deadline."); }
   };
 
-  const updateRegistrationSettings = async (updates) => {
-      try { await API.put(`/programs/${id}`, updates); fetchProgram(); } 
-      catch (err) { alert("Failed to update settings"); }
+  const handlePostUpdate = async () => {
+      if(!updateText.trim()) return;
+      setSendingUpdate(true);
+      try {
+          await API.post(`/programs/${id}/updates`, { text: updateText });
+          setUpdateText('');
+          fetchProgram(true); 
+          setTimeout(scrollToBottom, 100);
+      } catch (error) { alert("Failed to post update."); } 
+      finally { setSendingUpdate(false); }
   };
 
-  const handleAddReport = async (e) => {
-    e.preventDefault();
-    if(!reportText.trim()) return;
-    try {
-      await API.post(`/programs/${id}/updates`, { text: reportText });
-      setReportText('');
-      fetchProgram(); 
-    } catch (err) { alert("Failed to add report"); }
+  const handleStatusChange = async (newStatus) => {
+      if(!canManage) return;
+      if(!window.confirm(`Change status to ${newStatus}?`)) return;
+      try {
+          await API.put(`/programs/${id}/status`, { status: newStatus });
+          fetchProgram();
+      } catch (error) { alert("Failed to update status."); }
   };
 
-  // ✅ UPDATED: Robust link generation (Fallback to ID if slug is missing)
-  const handleCopyLink = (slug) => {
-    // If slug is available, use it. Otherwise, assume 'slug' passed is actually the ID or null
-    const identifier = slug || program._id;
-    
-    // Check if identifier is an ID (no hyphens, 24 chars) or a Slug
-    // We route everything through /register/program/ now to be safe
-    const link = `${window.location.origin}/register/program/${identifier}`;
-    
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  if (loading) return <div className="flex h-screen items-center justify-center text-emerald-600 font-bold">Loading...</div>;
+  if (!program) return <div className="p-10 text-center text-red-500">Program not found</div>;
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-emerald-600 font-medium animate-pulse">Loading...</div>;
-  if (!data) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-red-500 font-bold">Program Not Found</div>;
+  const isParent = !program.parentProgram && program.structure !== 'One-Time';
+  const isChild = !!program.parentProgram;
+  
+  const bgImage = program.flyer 
+    ? `url(http://localhost:5000/${program.flyer.replace(/\\/g, '/')})` 
+    : 'linear-gradient(to right, #059669, #10b981)';
 
-  const program = data.program || data; 
-  const children = data.children || []; 
+  return (
+    <div className="p-4 md:p-8 bg-gray-50 min-h-screen font-sans animate-in fade-in pb-20">
+      
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-6">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 hover:text-emerald-600 font-bold transition-colors">
+            <ArrowLeft size={18} /> Back
+        </button>
+        {isChild && (
+             <button onClick={() => navigate(`/programs/${program.parentProgram}`)} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center gap-2">
+                <Layers size={14}/> Master Program
+             </button>
+        )}
+      </div>
 
-  if (!program || !program._id) return <div className="p-8">Error: Invalid Program Data</div>;
-
-  const isSeriesParent = program.structure === 'Recurring' || program.structure === 'Numerical';
-  const isCreator = program?.createdBy?._id === user?._id || program?.createdBy === user?._id;
-  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'DEPT_ADMIN';
-  const canEdit = isAdmin || (isCreator && program?.status !== 'Completed');
-  const canComplete = (isAdmin || isCreator) && program?.status === 'Approved' && !isSeriesParent; 
-
-  let imageUrl = 'none';
-  if (program.flyer) {
-    if (program.flyer.startsWith('http')) {
-        imageUrl = program.flyer;
-    } else {
-        const cleanPath = program.flyer.replace(/\\/g, '/').replace(/^\//, '');
-        imageUrl = `${BACKEND_URL}/${cleanPath}`;
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch(status?.toLowerCase()) {
-      case 'completed': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'approved': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'pending': return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'rejected': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-gray-100 text-gray-600 border-gray-200';
-    }
-  };
-
-  // --- HERO SECTION ---
-  const HeroSection = () => (
-    <div className="relative w-full min-h-[400px] lg:min-h-[450px] flex flex-col justify-end overflow-hidden group z-10 bg-slate-900">
-        <div className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-1000 group-hover:scale-105" style={{ backgroundImage: imageUrl !== 'none' ? `url('${imageUrl}')` : 'none' }}></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/60 to-slate-900"></div>
-        <div className="absolute top-0 w-full p-6 md:p-8 flex justify-between items-center z-30">
-            <button onClick={() => navigate(-1)} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md text-white text-sm font-medium transition-all">
-                <ArrowLeft size={16} /> <span className="hidden md:inline">Back</span>
-            </button>
-            <div className="flex items-center gap-3">
-                {canComplete && (
-                    <button onClick={() => setIsCompleteModalOpen(true)} className="flex items-center gap-2 px-5 py-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-400 font-bold shadow-lg transition-all">
-                        <CheckCircle size={16}/> <span>Mark Complete</span>
-                    </button>
-                )}
-                {canEdit && (
-                  <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 px-5 py-2 rounded-full bg-white text-slate-900 hover:bg-emerald-50 font-bold shadow-lg transition-all">
-                    <Edit2 size={16}/> <span>Edit</span>
+      {/* HERO */}
+      <div 
+        className="rounded-3xl shadow-lg border border-gray-200 overflow-hidden mb-8 relative text-white min-h-[300px] flex items-end"
+        style={{ backgroundImage: bgImage, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20"></div>
+          <div className="relative z-10 p-8 w-full flex flex-col md:flex-row justify-between items-end gap-6">
+              <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                      {program.customSuffix && (
+                          <span className="bg-white/20 backdrop-blur-md text-white border border-white/30 text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                              {program.customSuffix}
+                          </span>
+                      )}
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold border ${program.status === 'Completed' ? 'bg-blue-500 border-blue-400' : 'bg-emerald-500 border-emerald-400'}`}>
+                          {program.status}
+                      </span>
+                  </div>
+                  <h1 className="text-3xl md:text-5xl font-extrabold mb-2 shadow-sm">{program.name}</h1>
+                  <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-200">
+                      <span className="flex items-center gap-1"><Calendar size={16}/> {new Date(program.date).toDateString()}</span>
+                      {program.venue && <span className="flex items-center gap-1"><ExternalLink size={16}/> {program.venue}</span>}
+                      {program.participantsCount > 0 && <span className="flex items-center gap-1"><Users size={16}/> Exp: {program.participantsCount}</span>}
+                  </div>
+              </div>
+              
+              <div className="flex flex-col gap-2 w-full md:w-auto">
+                  <button onClick={copyLink} className="bg-white text-gray-900 px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-100 transition-all shadow-lg">
+                      <Copy size={18}/> Copy Link
                   </button>
-                )}
-            </div>
-        </div>
-        <div className="relative w-full p-6 md:p-12 pb-12 z-20 max-w-7xl mx-auto mt-20">
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest border shadow-sm ${getStatusColor(program.status)}`}>{program.status}</span>
-              <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest bg-white/10 border border-white/20 text-white backdrop-blur-md">{program.type}</span>
-              {isSeriesParent && <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest bg-blue-500/20 border border-blue-400/30 text-blue-100 backdrop-blur-md flex items-center gap-1">{program.structure === 'Recurring' ? <Layers size={10}/> : <Hash size={10}/>} {program.structure} Series</span>}
-              {program.parentProgram && <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest bg-purple-500/20 border border-purple-400/30 text-purple-100 backdrop-blur-md">Version of Series</span>}
-            </div>
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 leading-tight drop-shadow-lg max-w-4xl">{program.name}</h1>
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4 text-sm font-medium text-slate-300 border-t border-white/10 pt-6">
-              <div className="flex items-center gap-3 bg-white/5 pr-4 py-1.5 rounded-full backdrop-blur-sm"><div className="p-1.5 bg-white/10 rounded-full"><Calendar size={14} className="text-emerald-400"/></div><span>{safeFormatDate(program.date)}</span></div>
-              <div className="flex items-center gap-3 bg-white/5 pr-4 py-1.5 rounded-full backdrop-blur-sm"><div className="p-1.5 bg-white/10 rounded-full"><MapPin size={14} className="text-emerald-400"/></div><span>{program.venue || 'No Venue'}</span></div>
-            </div>
-        </div>
-    </div>
-  );
+                  {canManage && (
+                    <button onClick={() => setIsEditModalOpen(true)} className="bg-white/10 backdrop-blur-md border border-white/30 text-white px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-white/20 transition-all">
+                        <Edit3 size={18}/> Edit
+                    </button>
+                  )}
+              </div>
+          </div>
+      </div>
 
-  // VIEW 1: SERIES DASHBOARD
-  if (isSeriesParent) {
-    return (
-        <div className="min-h-screen bg-gray-50 text-slate-800 font-sans animate-in fade-in">
-            <HeroSection />
-            <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-20 -mt-8 pb-20">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <div className="lg:col-span-8 space-y-8">
-                        <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 relative overflow-hidden">
-                            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><FileText size={20} className="text-emerald-600"/> Series Overview</h3>
-                            <p className="text-gray-600 leading-relaxed">{program.description || "No description provided."}</p>
-                            {program.proposal && (
-                                <a href={`${BACKEND_URL}/${program.proposal.replace(/\\/g, '/').replace(/^\//, '')}`} target="_blank" rel="noreferrer" className="mt-6 flex items-center justify-between p-4 rounded-xl bg-blue-50 border border-blue-100 hover:border-blue-300 transition-all cursor-pointer group">
-                                    <div className="flex items-center gap-3"><div className="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors"><Download size={20}/></div><div><p className="font-bold text-slate-800 text-sm">Download Proposal</p><p className="text-[10px] text-gray-500">Program documentation</p></div></div><ArrowRight size={18} className="text-blue-400 group-hover:translate-x-1 transition-transform"/>
-                                </a>
-                            )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* LEFT COLUMN */}
+          <div className="md:col-span-2 space-y-8">
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                  <h3 className="font-bold text-gray-800 mb-2 text-lg">About this Program</h3>
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">{program.description || "No description provided."}</p>
+              </div>
+
+              {/* VERSIONS LIST */}
+              {isParent && (
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2 text-lg">
+                            <Layers size={20} className="text-blue-500"/>
+                            {program.structure === 'Numerical' ? 'Program Batches' : 'Program Versions'}
+                        </h3>
+                        {canManage && (
+                            <button onClick={() => setIsVersionModalOpen(true)} className="text-xs font-bold bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex items-center gap-1">
+                                <Plus size={14}/> Create Next
+                            </button>
+                        )}
+                      </div>
+                      <div className="space-y-3">
+                          {program.children?.length > 0 ? (
+                              program.children.map(child => (
+                                  <div key={child._id} onClick={() => navigate(`/programs/${child._id}`)} className="p-4 rounded-xl border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50 transition-all cursor-pointer flex justify-between items-center bg-gray-50">
+                                      <div>
+                                          <p className="font-bold text-gray-700 hover:text-emerald-700">{child.customSuffix || child.name}</p>
+                                          <p className="text-xs text-gray-400 mt-1">{new Date(child.date).toLocaleDateString()} • {child.participants?.length || 0} Attendees</p>
+                                      </div>
+                                      <ChevronRight size={18} className="text-gray-300"/>
+                                  </div>
+                              ))
+                          ) : <p className="text-gray-400 text-sm italic text-center py-4">No versions yet.</p>}
+                      </div>
+                  </div>
+              )}
+
+              {/* PARTICIPANTS */}
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-bold text-gray-800 flex items-center gap-2 text-lg">
+                          <Users size={20} className="text-emerald-600"/> 
+                          Registered Attendees <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">{program.participants?.length || 0}</span>
+                      </h3>
+                      {canChat && (
+                          <button 
+                            onClick={() => setIsParticipantModalOpen(true)} 
+                            className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 flex items-center gap-1"
+                          >
+                              <Settings size={14}/> Manage
+                          </button>
+                      )}
+                  </div>
+                  {program.participants?.length > 0 ? (
+                      <div className="space-y-3">
+                          {program.participants.slice(0, 5).map((p, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                  <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold text-sm">
+                                          {p.fullName?.[0] || 'U'}
+                                      </div>
+                                      <div>
+                                          <p className="font-bold text-gray-800 text-sm">{p.fullName}</p>
+                                          <p className="text-xs text-gray-400">{p.email}</p>
+                                      </div>
+                                  </div>
+                                  <span className="text-xs text-gray-400">{new Date(p.createdAt).toLocaleDateString()}</span>
+                              </div>
+                          ))}
+                          {program.participants.length > 5 && <button onClick={() => setIsParticipantModalOpen(true)} className="w-full text-sm text-emerald-600 font-bold py-2">View All</button>}
+                      </div>
+                  ) : <p className="text-gray-400 text-sm italic text-center py-4">No registrations yet.</p>}
+              </div>
+
+              {/* ✅ CHAT / UPDATES */}
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col h-[600px]">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg shrink-0">
+                      <MessageSquare size={20} className="text-indigo-500"/> Team Chat
+                  </h3>
+                  
+                  {/* MESSAGES AREA */}
+                  <div className="flex-1 overflow-y-auto pr-2 space-y-3 mb-4 custom-scrollbar bg-gray-50/50 p-4 rounded-xl border border-gray-100 flex flex-col">
+                      {program.updates?.length > 0 ? (
+                          program.updates.map((update, idx) => {
+                              const isMe = update.user?._id === currentUser._id || update.user === currentUser._id;
+                              
+                              // ✅ DATE GROUPING LOGIC
+                              const showDateSeparator = idx === 0 || 
+                                  getChatDateLabel(update.date) !== getChatDateLabel(program.updates[idx - 1].date);
+
+                              return (
+                                  <div key={idx} className="flex flex-col w-full">
+                                      {/* Separator */}
+                                      {showDateSeparator && (
+                                          <div className="flex justify-center my-4 animate-in fade-in">
+                                              <span className="bg-gray-200 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                                                  {getChatDateLabel(update.date)}
+                                              </span>
+                                          </div>
+                                      )}
+
+                                      {/* Message Row */}
+                                      <div className={`flex gap-3 items-end animate-in fade-in slide-in-from-bottom-2 duration-300 w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                          {!isMe && (
+                                              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm border border-indigo-200 mb-1">
+                                                  {update.user?.name?.[0]?.toUpperCase() || '?'}
+                                              </div>
+                                          )}
+                                          
+                                          <div className={`flex flex-col max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
+                                              <div className="flex items-center gap-2 mb-1 px-1">
+                                                  {!isMe && (
+                                                      <span className="text-[10px] font-bold text-gray-600">
+                                                          {update.user?.name || update.user?.fullName || 'Unknown'}
+                                                      </span>
+                                                  )}
+                                                  <span className="text-[9px] text-gray-400">
+                                                      {new Date(update.date).toLocaleString([], { hour: '2-digit', minute:'2-digit'})}
+                                                  </span>
+                                              </div>
+
+                                              <div className={`p-3 text-sm shadow-sm leading-relaxed whitespace-pre-wrap ${
+                                                  isMe 
+                                                    ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-none' 
+                                                    : 'bg-white text-gray-700 rounded-2xl rounded-tl-none border border-gray-200' 
+                                              }`}>
+                                                  {update.text}
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              );
+                          })
+                      ) : (
+                          <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
+                              <MessageSquare size={40} className="mb-2"/>
+                              <p className="text-sm">No messages yet.</p>
+                          </div>
+                      )}
+                      <div ref={chatEndRef} /> 
+                  </div>
+
+                  {/* ✅ INPUT AREA WITH EMOJIS */}
+                  {canChat && (
+                      <div className="flex items-end gap-2 bg-white p-1 relative">
+                          {/* EMOJI PICKER POPUP */}
+                          {showEmojiPicker && (
+                              <div className="absolute bottom-16 left-0 z-50 shadow-2xl rounded-2xl animate-in slide-in-from-bottom-5">
+                                  <EmojiPicker 
+                                    onEmojiClick={onEmojiClick} 
+                                    width={300} 
+                                    height={400}
+                                    previewConfig={{ showPreview: false }} 
+                                  />
+                              </div>
+                          )}
+
+                          {/* SMILE BUTTON */}
+                          <button 
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                            className="p-3 mb-1 text-gray-400 hover:text-emerald-500 transition-colors"
+                          >
+                              <Smile size={24} />
+                          </button>
+
+                          <textarea 
+                              className="flex-1 bg-gray-50 p-3 text-sm rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none transition-all" 
+                              rows="1" 
+                              placeholder="Type a message..." 
+                              value={updateText} 
+                              onChange={(e) => setUpdateText(e.target.value)}
+                              onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handlePostUpdate();
+                                  }
+                              }}
+                          />
+                          <button 
+                              onClick={handlePostUpdate} 
+                              disabled={sendingUpdate || !updateText.trim()} 
+                              className="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-lg shadow-indigo-200 mb-1"
+                          >
+                              {sendingUpdate ? <Clock size={20} className="animate-spin"/> : <ArrowLeft size={20} className="rotate-90"/>}
+                          </button>
+                      </div>
+                  )}
+              </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="md:col-span-1 space-y-6">
+              {canManage && (
+                <>
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><ShieldAlert size={18} className="text-orange-500"/> Registration</h3>
+                        <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-xl">
+                            <span className={`text-xs font-bold uppercase ${program.registration.isOpen ? 'text-emerald-600' : 'text-red-500'}`}>{program.registration.isOpen ? 'Open' : 'Closed'}</span>
+                            <button onClick={handleToggleRegistration}>
+                                {program.registration.isOpen ? <ToggleRight size={32} className="text-emerald-500 fill-emerald-100"/> : <ToggleLeft size={32} className="text-gray-300"/>}
+                            </button>
                         </div>
                         <div>
-                            <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
-                                <div><h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">{program.structure === 'Recurring' ? <Layers size={22} className="text-emerald-600"/> : <Hash size={22} className="text-emerald-600"/>}{program.structure === 'Recurring' ? 'Active Versions' : 'Program Batches'}</h3><p className="text-sm text-gray-500">Manage individual instances.</p></div>
-                                {canEdit && <button onClick={() => setIsVersionModalOpen(true)} className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all"><Plus size={18} /> {program.structure === 'Recurring' ? 'Create Next Version' : 'Start Next Batch'}</button>}
-                            </div>
-                            {children && children.length > 0 ? (
-                                <div className="grid gap-4">
-                                    {children.map((ver) => (
-                                        <div key={ver._id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row items-center justify-between gap-4 group">
-                                            <div className="flex-1"><h4 className="font-bold text-gray-800 text-lg group-hover:text-emerald-600 transition-colors">{ver.versionLabel || ver.customSuffix || ver.name}</h4><div className="flex items-center gap-4 text-xs font-bold text-gray-400 mt-1"><span className="flex items-center gap-1"><Calendar size={12}/> {new Date(ver.date).toLocaleDateString()}</span><span className="flex items-center gap-1"><Users size={12}/> {ver.participants?.length || 0} Registered</span><span className={`px-2 py-0.5 rounded ${ver.registration?.isOpen ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{ver.registration?.isOpen ? 'Open' : 'Closed'}</span></div></div>
-                                            <div className="flex items-center gap-3">
-                                                {/* ✅ Use ID if LinkSlug missing */}
-                                                <button onClick={() => handleCopyLink(ver.registration?.linkSlug || ver._id)} className="p-2 bg-gray-50 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200" title="Copy Link"><Copy size={16} /></button>
-                                                <button onClick={() => navigate(`/programs/${ver._id}`)} className="px-4 py-2 bg-gray-100 text-gray-600 font-bold text-sm rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-colors flex items-center gap-2">Manage <ArrowRight size={14}/></button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-gray-200"><Layers size={48} className="mx-auto text-gray-300 mb-4" /><h3 className="text-lg font-bold text-gray-500">No versions created yet.</h3><p className="text-sm text-gray-400">Click the button above to start.</p></div>
-                            )}
+                            <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Close Date</label>
+                            <input type="date" value={regDate} onChange={handleDateChange} className="w-full p-2 text-sm font-bold text-gray-700 border border-gray-200 rounded-lg outline-none focus:border-emerald-500"/>
                         </div>
                     </div>
-                    <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xl shadow-gray-200/50">
-                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 pb-2 border-b border-gray-100">Series Stats</h4>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center p-3 rounded-xl hover:bg-gray-50 transition-colors"><div className="flex items-center gap-3 text-gray-500"><Layers size={18}/><span className="text-sm font-medium">Total Versions</span></div><div className="text-right"><span className="font-bold text-slate-800 text-lg">{children.length}</span></div></div>
-                                <div className="flex justify-between items-center p-3 rounded-xl hover:bg-gray-50 transition-colors"><div className="flex items-center gap-3 text-gray-500"><User size={18}/><span className="text-sm font-medium">Total Impact</span></div><div className="text-right"><span className="font-bold text-slate-800 text-lg">{children.reduce((acc, curr) => acc + (curr.participants?.length || 0), 0)}</span></div></div>
-                            </div>
-                        </div>
-                        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 relative overflow-hidden text-white shadow-xl">
-                            <div className="relative z-10 flex flex-col items-center text-center"><div className="w-20 h-20 mb-4 rounded-full border-4 border-white/20 bg-white/10 flex items-center justify-center text-2xl font-bold text-white shadow-lg backdrop-blur-md">{program.createdBy?.name ? program.createdBy.name[0] : <User/>}</div><h3 className="text-lg font-bold text-white mb-1">{program.createdBy?.name || 'Unknown Lead'}</h3><p className="text-xs text-emerald-100 uppercase tracking-widest mb-4">Program Lead</p><div className="w-full py-2 px-3 bg-white/10 rounded-lg border border-white/10"><p className="text-xs text-emerald-50">{program.createdBy?.email}</p></div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <AddProgramModal isOpen={isVersionModalOpen} onClose={() => setIsVersionModalOpen(false)} onSuccess={fetchProgram} parentProgram={program} />
-            <EditProgramModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} program={program} onSuccess={fetchProgram}/>
-        </div>
-    );
-  }
 
-  // VIEW 2: SINGLE INSTANCE DASHBOARD
-  return (
-    <div className="min-h-screen bg-gray-50 text-slate-800 font-sans">
-      <HeroSection />
-      <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-20 -mt-0 lg:-mt-16 pb-20">
-         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 space-y-6">
-               <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-xl shadow-gray-200/50 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-8 opacity-5 text-emerald-600"><Sparkles size={100}/></div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-3"><FileText className="text-emerald-600"/> Overview</h3>
-                  {program.status === 'Completed' && program.finalReport && (
-                      <div className="mb-6 p-6 bg-blue-50 border border-blue-100 rounded-2xl"><h4 className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-2">Final Outcome</h4><p className="text-slate-700 text-sm leading-relaxed">{program.finalReport}</p></div>
-                  )}
-                  <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-sm md:text-base"><p className="whitespace-pre-wrap">{program.description || "No description available."}</p></div>
-                  {program.proposal && (<a href={`${BACKEND_URL}/${program.proposal.replace(/\\/g, '/').replace(/^\//, '')}`} target="_blank" rel="noreferrer" className="mt-8 flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all cursor-pointer"><div className="flex items-center gap-4"><div className="w-10 h-10 flex items-center justify-center bg-emerald-100 rounded-lg text-emerald-600"><Download size={20}/></div><div><p className="font-bold text-slate-800 text-sm">Download Proposal</p></div></div><ChevronRight size={18} className="text-gray-400"/></a>)}
-               </div>
-               <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-xl shadow-gray-200/50 flex flex-col h-[600px]">
-                  <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-3"><Activity className="text-emerald-600"/> Live Updates</h3>
-                  <div className="flex-1 overflow-y-auto pr-2 space-y-6 relative custom-scrollbar">
-                      <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-gray-100 min-h-full"></div>
-                      {program.updates?.length === 0 ? <div className="text-center py-12 text-gray-400 italic text-sm">No updates yet.</div> : program.updates?.map((update, idx) => (<div key={idx} className="relative pl-10"><div className="absolute left-[3px] top-1.5 w-[18px] h-[18px] bg-white border-2 border-emerald-500 rounded-full z-10 flex items-center justify-center"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div></div><div className="flex flex-col sm:flex-row sm:justify-between gap-2 mb-2"><span className="font-bold text-slate-700 text-sm">{update.user?.name || 'System Admin'}</span><span className="text-[10px] font-bold uppercase text-gray-400">{safeFormatTime(update.date)}</span></div><div className="p-4 bg-gray-50 rounded-xl border border-gray-100 text-slate-600 text-sm">{update.text}</div></div>))}
-                      <div ref={messagesEndRef} />
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><CheckCircle size={18} className="text-emerald-500"/> Status</h3>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                            {['Pending', 'Approved', 'Ongoing', 'Completed'].map(status => (
+                                <button key={status} onClick={() => handleStatusChange(status)} className={`text-xs font-bold py-2 rounded-lg border ${program.status === status ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-gray-500 border-gray-100'}`}>{status}</button>
+                            ))}
+                        </div>
+                        {program.status !== 'Completed' && (
+                            <button onClick={() => setIsCompleteModalOpen(true)} className="w-full py-2.5 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-black flex items-center justify-center gap-2">
+                                <CheckCircle size={14}/> Mark as Complete
+                            </button>
+                        )}
+                    </div>
+                </>
+              )}
+
+              <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Download size={18} className="text-purple-500"/> Documents</h3>
+                   <div className="space-y-2">
+                      {program.proposal ? (
+                          <a href={`http://localhost:5000/${program.proposal}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100 hover:bg-purple-100"><LinkIcon size={14} className="text-purple-600"/><span className="text-xs font-bold text-purple-700 truncate">Proposal.pdf</span></a>
+                      ) : <p className="text-xs text-gray-400 italic pl-2">No proposal.</p>}
+                      {program.flyer ? (
+                          <a href={`http://localhost:5000/${program.flyer}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100 hover:bg-orange-100"><LinkIcon size={14} className="text-orange-600"/><span className="text-xs font-bold text-orange-700 truncate">Flyer.jpg</span></a>
+                      ) : <p className="text-xs text-gray-400 italic pl-2">No flyer.</p>}
+                   </div>
+              </div>
+
+              {program.status === 'Completed' && (
+                  <div className="bg-emerald-50 p-5 rounded-3xl border border-emerald-100 animate-in zoom-in">
+                      <h3 className="font-bold text-emerald-800 mb-2 flex items-center gap-2">
+                          <CheckCircle size={18}/> Completed
+                      </h3>
+                      <div className="space-y-2 text-xs text-emerald-700">
+                          <p><strong>Attendance:</strong> {program.actualAttendance || 0}</p>
+                          {program.driveLink && (
+                              <a href={program.driveLink} target="_blank" rel="noreferrer" className="block text-emerald-600 underline hover:text-emerald-800">
+                                  View Event Photos
+                              </a>
+                          )}
+                          {program.finalDocument && (
+                              <a href={`http://localhost:5000/${program.finalDocument}`} target="_blank" rel="noreferrer" className="block text-emerald-600 underline hover:text-emerald-800">
+                                  View Final Report
+                              </a>
+                          )}
+                      </div>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-gray-100"><form onSubmit={handleAddReport} className="relative"><textarea className="w-full bg-gray-50 p-4 pr-14 rounded-2xl border border-gray-200 outline-none text-sm font-medium" rows="2" placeholder="Log a new update..." value={reportText} onChange={(e) => setReportText(e.target.value)}></textarea><button type="submit" disabled={!reportText.trim()} className="absolute bottom-3 right-3 w-10 h-10 flex items-center justify-center bg-emerald-600 text-white rounded-xl hover:bg-emerald-500 disabled:opacity-50"><Send size={18} /></button></form></div>
-               </div>
-            </div>
-            <div className="lg:col-span-4 space-y-6">
-                <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><Share2 size={80}/></div>
-                    <h4 className="text-xs font-bold text-blue-200 uppercase tracking-widest mb-2">Public Registration</h4>
-                    {canEdit && (<div className="mb-4 bg-black/20 rounded-xl p-3 border border-white/10 backdrop-blur-sm space-y-3"><div className="flex items-center justify-between"><span className="text-xs font-bold text-blue-100 flex items-center gap-2">{program.registration?.isOpen !== false ? <Unlock size={12}/> : <Lock size={12}/>}{program.registration?.isOpen !== false ? 'Registration OPEN' : 'Registration CLOSED'}</span><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={program.registration?.isOpen !== false} onChange={(e) => updateRegistrationSettings({ registrationOpen: e.target.checked })} className="sr-only peer" /><div className="w-9 h-5 bg-gray-600/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div></label></div><div className="pt-2 border-t border-white/10"><label className="text-[10px] font-bold text-blue-300 uppercase block mb-1">Auto-Close Deadline</label><input type="datetime-local" className="w-full bg-white/10 border border-white/20 rounded-lg p-1.5 text-xs text-white focus:outline-none" value={getSafeInputDate(program.registration?.deadline)} onChange={(e) => updateRegistrationSettings({ registrationDeadline: e.target.value || null })} /></div></div>)}
-                    <div className="bg-black/20 rounded-xl p-3 flex items-center gap-3 border border-white/10 backdrop-blur-sm">
-                        <div className="flex-1 min-w-0"><p className="text-xs text-blue-200 truncate font-mono select-all">{`${window.location.origin}/register/program/${program.registration?.linkSlug || program._id}`}</p></div>
-                        {/* ✅ Use ID if LinkSlug missing */}
-                        <button onClick={() => handleCopyLink(program.registration?.linkSlug || program._id)} className="p-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-bold text-xs">{copied ? <Check size={14}/> : <Copy size={14}/>}</button>
-                    </div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xl shadow-gray-200/50">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 pb-2 border-b border-gray-100">Financials & Attendance</h4>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center p-3 rounded-xl hover:bg-gray-50 transition-colors"><div className="flex items-center gap-3 text-gray-500"><DollarSign size={18}/><span className="text-sm font-medium">Budget</span></div><div className="text-right"><span className="font-bold text-slate-800 font-mono text-lg">₦{program.cost?.toLocaleString() || '0.00'}</span>{program.amountDisbursed && (<p className="text-[10px] text-gray-400">Paid: ₦{program.amountDisbursed.toLocaleString()}</p>)}</div></div>
-                        <div className="flex justify-between items-center p-3 rounded-xl hover:bg-gray-50 transition-colors"><div className="flex items-center gap-3 text-gray-500"><User size={18}/><span className="text-sm font-medium">Attendance</span></div><div className="text-right"><span className="font-bold text-slate-800 text-lg">{program.participants?.length || 0}</span><span className="text-xs text-gray-400 font-medium ml-1">/ {program.participantsCount || 0} Expected</span></div></div>
-                    </div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xl shadow-gray-200/50">
-                    <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-100"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Participants</h4>{canEdit && (<button onClick={() => setIsParticipantsModalOpen(true)} className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-100"><Users size={12}/> Manage</button>)}</div>
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                        {program.participants && program.participants.length > 0 ? (program.participants.map((person, idx) => { if (!person) return null; return (<div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors"><div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-xs font-bold shrink-0">{typeof person === 'object' ? (person.fullName || person.email || '?').charAt(0).toUpperCase() : '?'}</div><div className="min-w-0"><p className="text-xs font-bold text-gray-700 truncate">{typeof person === 'object' ? (person.fullName || person.email) : person}</p><p className="text-[10px] text-gray-400 flex items-center gap-1"><Mail size={8}/> Registered</p></div></div>); })) : (<div className="text-center py-6 text-gray-400 text-xs italic">No participants registered.</div>)}
-                    </div>
-                </div>
-                <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 relative overflow-hidden text-white shadow-xl">
-                    <div className="relative z-10 flex flex-col items-center text-center"><div className="w-20 h-20 mb-4 rounded-full border-4 border-white/20 bg-white/10 flex items-center justify-center text-2xl font-bold text-white shadow-lg backdrop-blur-md">{program.createdBy?.name ? program.createdBy.name[0] : <User/>}</div><h3 className="text-lg font-bold text-white mb-1">{program.createdBy?.name || 'Unknown Lead'}</h3><p className="text-xs text-emerald-100 uppercase tracking-widest mb-4">Program Lead</p><div className="w-full py-2 px-3 bg-white/10 rounded-lg border border-white/10"><p className="text-xs text-emerald-50">{program.createdBy?.email}</p></div></div>
-                </div>
-            </div>
-         </div>
+              )}
+          </div>
       </div>
-      <EditProgramModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} program={program} onSuccess={fetchProgram}/>
-      <ManageParticipantsModal isOpen={isParticipantsModalOpen} onClose={() => setIsParticipantsModalOpen(false)} program={program} onSuccess={fetchProgram} />
-      <CompleteProgramModal isOpen={isCompleteModalOpen} onClose={() => setIsCompleteModalOpen(false)} program={program} onSuccess={fetchProgram}/>
+
+      <AddProgramModal isOpen={isVersionModalOpen} onClose={() => setIsVersionModalOpen(false)} parentProgram={program} onSuccess={fetchProgram} />
+      <EditProgramModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} program={program} onSuccess={fetchProgram} />
+      <CompleteProgramModal isOpen={isCompleteModalOpen} onClose={() => setIsCompleteModalOpen(false)} program={program} onSuccess={fetchProgram} />
+      <ManageParticipantsModal isOpen={isParticipantModalOpen} onClose={() => setIsParticipantModalOpen(false)} program={program} onSuccess={fetchProgram} />
     </div>
   );
 };
