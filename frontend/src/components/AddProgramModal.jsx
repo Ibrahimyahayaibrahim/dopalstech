@@ -220,7 +220,7 @@ const AddProgramModal = ({ isOpen, onClose, departmentId, onSuccess, parentProgr
                 />
             </div>
             <div>
-                <label className="text-xs font-bold text-gray-500 uppercase">Expected Attendees</label>
+                <label className="text-xs font-bold text-gray-500 uppercase">Expected Beneficiaries</label>
                 <input 
                     type="number" 
                     name="participantsCount" 

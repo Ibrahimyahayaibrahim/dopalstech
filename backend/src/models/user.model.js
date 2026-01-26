@@ -40,6 +40,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+
+    // ✅ NEW: FORGOT PASSWORD FIELDS
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
     
     // --- PROFILE DETAILS ---
     phone: { type: String },
@@ -58,20 +62,16 @@ const userSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-// ✅ FIXED: MODERN ASYNC MIDDLEWARE (No 'next' parameter)
-// This relies on Promises, which prevents the "next is not a function" error.
+// PASSWORD HASHING MIDDLEWARE
 userSchema.pre('save', async function() {
-    // 1. If password is NOT modified, do nothing
     if (!this.isModified('password')) {
         return;
     }
-
-    // 2. Hash the password
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
 });
 
-// ✅ PASSWORD MATCHING METHOD
+// PASSWORD MATCHING METHOD
 userSchema.methods.matchPassword = async function(enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };

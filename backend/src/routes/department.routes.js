@@ -8,6 +8,7 @@ import {
     assignDepartmentAdmin,
     revokeDepartmentAdmin
 } from '../controllers/department.controller.js';
+import { getDepartmentOverview } from "../controllers/departmentOverview.controller.js";
 import { protect, admin } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
@@ -21,6 +22,7 @@ router.route('/')
 router.put('/assign-admin', protect, admin, assignDepartmentAdmin);
 router.put('/revoke-admin', protect, admin, revokeDepartmentAdmin);
 router.put('/remove-member', protect, admin, removeFromDepartment);
+router.get("/:id/overview", protect, getDepartmentOverview);
 
 // 3. Dynamic ID Routes
 router.route('/:id')

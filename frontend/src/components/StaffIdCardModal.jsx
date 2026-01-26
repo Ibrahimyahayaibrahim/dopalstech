@@ -1,179 +1,344 @@
-import { X, Phone, Mail, MapPin, Calendar, User, FileText, Heart, Linkedin, Shield, Clock } from 'lucide-react';
+import { useRef } from 'react';
+import {
+  X,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  User,
+  FileText,
+  Heart,
+  Linkedin,
+  Shield,
+  Clock,
+  Building2,
+  Printer,
+} from 'lucide-react';
 
 const StaffIdCardModal = ({ user, onClose }) => {
   if (!user) return null;
 
-  // --- FIX: Helper to handle image paths correctly ---
+  const printRef = useRef(null);
+
+  // Helper to handle image paths correctly
   const getImageUrl = (path) => {
     if (!path) return null;
-    if (path.startsWith('http')) return path; // External link (Google/Cloudinary)
-    if (path.startsWith('blob:')) return path; // Local preview blob
-    return `http://localhost:5000${path}`; // Local server path
+    if (path.startsWith('http')) return path;
+    if (path.startsWith('blob:')) return path;
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+    return `http://localhost:5000${normalized}`;
+  };
+
+  const status = (user.status || 'Active').toLowerCase();
+  const isActive = status === 'active';
+
+  const roleLabel = (user.role || 'STAFF').toString().replaceAll('_', ' ').toUpperCase();
+  const deptName = user.department?.name || 'Unassigned';
+
+  const handlePrint = () => {
+    // Print ONLY the card area using a temporary print stylesheet
+    const content = printRef.current;
+    if (!content) return;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=650');
+    if (!printWindow) return;
+
+    const styles = `
+      <style>
+        @page { size: A4; margin: 16mm; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: #fff; }
+        .print-wrap { width: 100%; }
+        /* Optional: prevent awkward breaks */
+        .no-break { break-inside: avoid; page-break-inside: avoid; }
+      </style>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Staff ID Card</title>
+          ${styles}
+        </head>
+        <body>
+          <div class="print-wrap">
+            ${content.outerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    // Wait a bit for images to load then print
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 600);
   };
 
   return (
-    // 1. FULL SCREEN WRAPPER
-    <div className="fixed inset-0 z-[9999] bg-white overflow-y-auto animate-enter">
-      
-      <button 
-          onClick={onClose} 
-          className="fixed top-6 right-6 bg-black/10 hover:bg-black/20 text-gray-800 p-3 rounded-full transition-colors z-[110] backdrop-blur-md"
-      >
-          <X size={24}/>
-      </button>
+    <div className="fixed inset-0 z-[9999] bg-white overflow-y-auto animate-in fade-in duration-200">
+      {/* Top actions (close + print) */}
+      <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[110] flex items-center gap-2">
+        <button
+          onClick={handlePrint}
+          className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur border border-slate-200 px-4 py-2 text-slate-700 hover:bg-white hover:text-slate-900 shadow-sm transition"
+        >
+          <Printer size={18} />
+          <span className="text-sm font-extrabold hidden sm:inline">Print ID</span>
+        </button>
 
-      {/* 2. MAIN CONTENT */}
-      <div className="w-full min-h-screen flex flex-col">
-        
-        {/* --- HEADER SECTION --- */}
-        <div className="relative bg-gradient-to-r from-emerald-900 to-emerald-700 text-white pb-24 pt-16 px-6 md:px-8 shadow-lg">
-            <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-start gap-6 relative z-10">
-                
-                {/* Name & Role */}
-                <div className="flex-1 min-w-0"> 
-                    <div className="flex items-center gap-3 mb-2">
-                        <span className="bg-emerald-400/20 text-emerald-100 text-[10px] md:text-xs px-3 py-1 rounded-full uppercase font-bold border border-emerald-400/30">
-                            {user.role}
-                        </span>
-                        {user.status === 'Active' ? (
-                            <span className="flex items-center gap-1 text-[10px] md:text-xs font-bold text-green-300 bg-green-900/30 px-3 py-1 rounded-full border border-green-400/20">
-                                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div> Active
-                            </span>
-                        ) : (
-                            <span className="text-[10px] md:text-xs font-bold text-red-300 bg-red-900/30 px-3 py-1 rounded-full border border-red-400/20">
-                                Suspended
-                            </span>
-                        )}
-                    </div>
-                    
-                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-2 leading-tight break-words">
-                        {user.name}
-                    </h1>
-                    
-                    <p className="text-lg text-emerald-100 font-medium opacity-90">{user.position || 'Staff Member'}</p>
+        <button
+          onClick={onClose}
+          className="inline-flex items-center justify-center rounded-full bg-white/80 backdrop-blur border border-slate-200 p-3 text-slate-700 hover:bg-white hover:text-slate-900 shadow-sm transition"
+          aria-label="Close"
+        >
+          <X size={22} />
+        </button>
+      </div>
+
+      <div className="min-h-screen flex flex-col">
+        {/* HERO */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-800 text-white">
+          {/* Soft glow */}
+          <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+
+          <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-28 sm:pb-32">
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+              {/* Left */}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] sm:text-xs font-extrabold tracking-widest">
+                    {roleLabel}
+                  </span>
+
+                  {isActive ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-[10px] sm:text-xs font-extrabold text-emerald-100">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                      ACTIVE
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-red-300/20 bg-red-400/10 px-3 py-1 text-[10px] sm:text-xs font-extrabold text-red-100">
+                      SUSPENDED
+                    </span>
+                  )}
+
+                  {user.position ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] sm:text-xs font-bold text-white/90">
+                      {user.position}
+                    </span>
+                  ) : null}
                 </div>
 
-                {/* Department Info */}
-                <div className="text-left md:text-right opacity-80 bg-white/5 p-4 rounded-xl border border-white/10 shrink-0">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-emerald-300 mb-1">Department</p>
-                    <p className="font-bold text-xl">{user.department?.name || 'Unassigned'}</p>
+                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight break-words">
+                  {user.name}
+                </h1>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-white/85">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold">
+                    <Building2 size={14} className="text-emerald-200" />
+                    {deptName}
+                  </span>
+
+                  {user.createdAt ? (
+                    <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold">
+                      <Clock size={14} className="text-emerald-200" />
+                      Joined {new Date(user.createdAt).toLocaleDateString()}
+                    </span>
+                  ) : null}
                 </div>
+              </div>
+
+              {/* Right mini panel */}
+              <div className="w-full lg:w-auto">
+                <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur px-4 py-3">
+                  <p className="text-[10px] uppercase font-extrabold tracking-[0.2em] text-emerald-200/90">
+                    Department
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-white break-words">{deptName}</p>
+                </div>
+              </div>
             </div>
-
-            {/* Decorative Background Pattern */}
-            <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 skew-x-12 blur-3xl pointer-events-none"></div>
+          </div>
         </div>
 
-        {/* --- BODY SECTION --- */}
-        <div className="flex-1 bg-gray-50">
-            {/* Negative margin pulls content up over the header */}
-            <div className="max-w-5xl mx-auto px-6 md:px-8 -mt-16 mb-20">
-                
-                {/* Profile Picture Card */}
-                <div className="bg-white p-1.5 rounded-[2rem] shadow-xl inline-block mb-8">
-                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-[1.7rem] bg-emerald-100 flex items-center justify-center text-5xl font-bold text-emerald-700 overflow-hidden relative border border-gray-100">
-                        {user.profilePicture ? (
-                            <img src={getImageUrl(user.profilePicture)} className="w-full h-full object-cover" alt="Profile" />
-                        ) : (
-                            user.name.charAt(0)
-                        )}
+        {/* BODY */}
+        <div className="flex-1 bg-slate-50">
+          {/* ✅ Fix: safer overlap so header never hides photo */}
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 pb-16">
+            {/* PRINT AREA START */}
+            <div ref={printRef} className="no-break">
+              {/* Profile + Summary */}
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
+                  {/* Profile */}
+                  <div className="bg-white p-2 rounded-[2rem] shadow-xl border border-slate-200 inline-block">
+                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-[1.6rem] overflow-hidden bg-emerald-100 flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-emerald-700 border border-slate-200">
+                      {user.profilePicture ? (
+                        <img
+                          src={getImageUrl(user.profilePicture)}
+                          className="w-full h-full object-cover"
+                          alt="Profile"
+                        />
+                      ) : (
+                        (user.name?.[0] || '?').toUpperCase()
+                      )}
                     </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase font-extrabold tracking-[0.2em] text-slate-400">
+                      Quick Summary
+                    </p>
+
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <MiniPill icon={<Mail size={14} />} label="Email" value={user.email} />
+                      <MiniPill icon={<Phone size={14} />} label="Phone" value={user.phone} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main grid */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left */}
+                <div className="lg:col-span-2 space-y-6">
+                  <SectionCard
+                    title="Personal Details"
+                    icon={<User size={18} className="text-emerald-600" />}
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                      <InfoItem label="Email Address" value={user.email} icon={<Mail size={16} />} />
+                      <InfoItem label="Phone Number" value={user.phone} icon={<Phone size={16} />} />
+                      <InfoItem
+                        label="Date of Birth"
+                        value={user.dob ? new Date(user.dob).toLocaleDateString() : 'N/A'}
+                        icon={<Calendar size={16} />}
+                      />
+                      <InfoItem label="Gender" value={user.gender} icon={<User size={16} />} />
+                    </div>
+                  </SectionCard>
+
+                  <SectionCard
+                    title="Security & Location"
+                    icon={<Shield size={18} className="text-emerald-600" />}
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                      <InfoItem label="NIN (National ID)" value={user.nin} icon={<FileText size={16} />} />
+                      <InfoItem label="Home Address" value={user.address} icon={<MapPin size={16} />} />
+                    </div>
+                  </SectionCard>
                 </div>
 
-                {/* INFO GRID */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    
-                    {/* LEFT COLUMN (Main Details) */}
-                    <div className="lg:col-span-2 space-y-6">
-                        
-                        {/* 1. Contact Info */}
-                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <User size={18} className="text-emerald-600"/> Personal Details
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                <InfoItem label="Email Address" value={user.email} icon={<Mail size={16}/>} />
-                                <InfoItem label="Phone Number" value={user.phone} icon={<Phone size={16}/>} />
-                                <InfoItem label="Date of Birth" value={user.dob ? new Date(user.dob).toLocaleDateString() : 'N/A'} icon={<Calendar size={16}/>} />
-                                <InfoItem label="Gender" value={user.gender} icon={<User size={16}/>} />
-                            </div>
-                        </div>
+                {/* Right */}
+                <div className="space-y-6">
+                  <div className="rounded-3xl border border-red-100 bg-red-50 p-5 sm:p-6">
+                    <h3 className="text-sm font-extrabold text-red-900 mb-4 flex items-center gap-2">
+                      <Heart size={18} className="text-red-600" />
+                      Emergency Contact
+                    </h3>
 
-                        {/* 2. Security & Address */}
-                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
-                             <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <Shield size={18} className="text-blue-600"/> Security & Location
-                             </h3>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                <InfoItem label="NIN (National ID)" value={user.nin} icon={<FileText size={16}/>} />
-                                <InfoItem label="Home Address" value={user.address} icon={<MapPin size={16}/>} />
-                             </div>
-                        </div>
+                    <div className="space-y-4">
+                      <InfoItem label="Name" value={user.emergencyContact?.name} />
+                      <InfoItem label="Relationship" value={user.emergencyContact?.relationship} />
+
+                      <div className="pt-4 border-t border-red-200">
+                        <p className="text-[10px] font-extrabold text-red-400 uppercase tracking-[0.2em] mb-1">
+                          Emergency Phone
+                        </p>
+                        <p className="text-lg font-extrabold text-red-700 break-words">
+                          {user.emergencyContact?.phone || 'N/A'}
+                        </p>
+                      </div>
                     </div>
+                  </div>
 
-                    {/* RIGHT COLUMN (Sidebar Info) */}
-                    <div className="space-y-6">
-                        
-                        {/* Emergency Contact */}
-                        <div className="bg-red-50 p-6 md:p-8 rounded-3xl border border-red-100">
-                            <h3 className="text-base font-bold text-red-900 mb-6 flex items-center gap-2">
-                                <Heart size={18} className="text-red-600"/> Emergency
-                            </h3>
-                            <div className="space-y-5">
-                                <InfoItem label="Name" value={user.emergencyContact?.name} />
-                                <InfoItem label="Relationship" value={user.emergencyContact?.relationship} />
-                                <div className="pt-3 border-t border-red-200">
-                                    <p className="text-[10px] font-bold text-red-400 uppercase mb-1">Emergency Phone</p>
-                                    <p className="text-lg font-bold text-red-700">{user.emergencyContact?.phone || 'N/A'}</p>
-                                </div>
-                            </div>
+                  {(user.bio || user.linkedin) && (
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+                      {user.linkedin && (
+                        <a
+                          href={user.linkedin}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-3 font-extrabold text-emerald-700 hover:text-emerald-800 transition"
+                        >
+                          <span className="p-2 rounded-full bg-emerald-50 border border-emerald-100">
+                            <Linkedin size={18} />
+                          </span>
+                          View LinkedIn Profile
+                        </a>
+                      )}
+
+                      {user.bio && (
+                        <div className={`${user.linkedin ? 'mt-5' : ''}`}>
+                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em] mb-2">
+                            About
+                          </p>
+                          <p className="text-sm text-slate-600 leading-relaxed italic break-words">
+                            “{user.bio}”
+                          </p>
                         </div>
-
-                        {/* Bio / Social */}
-                        {(user.bio || user.linkedin) && (
-                            <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
-                                {user.linkedin && (
-                                    <a href={user.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-blue-600 hover:underline font-bold mb-6 text-sm">
-                                        <div className="p-2 bg-blue-50 rounded-full"><Linkedin size={18}/></div>
-                                        View LinkedIn Profile
-                                    </a>
-                                )}
-                                {user.bio && (
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">About</p>
-                                        <p className="text-sm text-gray-600 italic leading-relaxed">"{user.bio}"</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Meta Data */}
-                        <div className="text-center opacity-40">
-                            <p className="text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                                <Clock size={10}/> Joined {new Date(user.createdAt).toLocaleDateString()}
-                            </p>
-                        </div>
+                      )}
                     </div>
+                  )}
 
+                  {user.createdAt ? (
+                    <div className="text-center text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400 opacity-70 flex items-center justify-center gap-2">
+                      <Clock size={10} />
+                      Joined {new Date(user.createdAt).toLocaleDateString()}
+                    </div>
+                  ) : null}
                 </div>
+              </div>
             </div>
+            {/* PRINT AREA END */}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// Component for consistent rows (Slightly smaller text)
-const InfoItem = ({ label, value, icon }) => (
-    <div>
-        <div className="flex items-center gap-2 mb-1">
-            {icon && <span className="text-gray-400">{icon}</span>}
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{label}</span>
-        </div>
-        <p className="font-semibold text-gray-800 text-sm md:text-base break-words leading-tight">
-            {value || <span className="text-gray-300 italic">Not Provided</span>}
-        </p>
+/* ---------------- UI SUB COMPONENTS ---------------- */
+
+const SectionCard = ({ title, icon, children }) => (
+  <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-7 shadow-sm">
+    <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mb-5 flex items-center gap-2">
+      {icon}
+      {title}
+    </h3>
+    {children}
+  </div>
+);
+
+const MiniPill = ({ icon, label, value }) => (
+  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 flex items-start gap-2 min-w-0">
+    <span className="mt-0.5 text-slate-400">{icon}</span>
+    <div className="min-w-0">
+      <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
+        {label}
+      </div>
+      <div className="text-sm font-semibold text-slate-800 truncate">{value || '—'}</div>
     </div>
+  </div>
+);
+
+const InfoItem = ({ label, value, icon }) => (
+  <div className="min-w-0">
+    <div className="flex items-center gap-2 mb-1">
+      {icon ? <span className="text-slate-400">{icon}</span> : null}
+      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">
+        {label}
+      </span>
+    </div>
+    <p className="font-semibold text-slate-900 text-sm sm:text-base break-words leading-tight">
+      {value || <span className="text-slate-300 italic font-semibold">Not Provided</span>}
+    </p>
+  </div>
 );
 
 export default StaffIdCardModal;

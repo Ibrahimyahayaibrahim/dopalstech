@@ -11,8 +11,7 @@ import GlobalReports from '../components/GlobalReports';
 import BroadcastCenter from '../components/BroadcastCenter';
 import SystemSettings from './SystemSettings';
 
-// --- NEW ANALYTICS COMPONENTS ---
-import ImpactChart from '../components/ImpactChart';
+// --- ANALYTICS ---
 import DepartmentChart from '../components/DepartmentChart';
 import ExpandableChartCard from '../components/ExpandableChartCard';
 
@@ -21,13 +20,13 @@ import logo from '../assets/logo.png';
 import { 
   LayoutDashboard, Building2, Users, Settings, LogOut, Activity, Plus, Search, 
   FileText, X, Menu, CheckCircle, AlertCircle, FileCheck, Megaphone, 
-  BarChart2, TrendingUp, Calendar as CalendarIcon, ArrowRightLeft, Globe, Layers, Mail
+  Globe, Layers, Mail, TrendingUp
 } from 'lucide-react';
 
 // --- RECHARTS ---
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
-  AreaChart, Area
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+  ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 
 // --- CONFIGURATION ---
@@ -64,99 +63,24 @@ const itemVariants = {
   visible: { x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
 };
 
-// --- CHART COMPONENTS ---
-const ChartGlowDef = () => (
-  <defs>
-    <filter id="glow" height="300%" width="300%" x="-75%" y="-75%">
-      <feGaussianBlur stdDeviation="6" result="coloredBlur" />
-      <feMerge>
-        <feMergeNode in="coloredBlur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="5%" stopColor="#10b981" stopOpacity={0.5}/>
-      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-    </linearGradient>
-    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="#10b981" stopOpacity={1}/>
-      <stop offset="100%" stopColor="#34d399" stopOpacity={0.6}/>
-    </linearGradient>
-  </defs>
-);
-
-const CustomTechTooltip = ({ active, payload, label }) => {
+// --- CUSTOM TOOLTIP ---
+const CustomChartTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-emerald-950/90 border border-emerald-500/50 p-3 rounded-xl shadow-2xl backdrop-blur-md min-w-[120px]">
-          <p className="text-emerald-400 font-mono text-[10px] tracking-widest uppercase mb-1">{label || payload[0].name}</p>
-          <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_#34d399]"></div>
-              <p className="text-white font-black text-xl tracking-tight">
-                 {payload[0].value}
-                 <span className="text-emerald-500/70 text-[9px] font-bold ml-1 align-top">PROGS</span>
-              </p>
-          </div>
+        <div className="bg-white/90 border border-gray-100 p-4 rounded-2xl shadow-xl backdrop-blur-md min-w-[150px]">
+          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-2">{label}</p>
+          {payload.map((entry, index) => (
+              <div key={index} className="flex items-center gap-2 mb-1 last:mb-0">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                  <p className="text-xs font-bold text-gray-700">
+                      {entry.name}: <span className="text-sm font-black" style={{ color: entry.color }}>{entry.value}</span>
+                  </p>
+              </div>
+          ))}
         </div>
       );
     }
     return null;
-};
-
-// --- ACTIVITY FEED ---
-const ActivityFeed = ({ activities }) => {
-    if (!activities || activities.length === 0) {
-        return (
-            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 text-center text-gray-400 h-full flex flex-col items-center justify-center">
-                <Activity size={40} className="mb-4 opacity-20"/>
-                <p className="text-sm font-bold">No recent system activity found.</p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-6 md:p-8 h-[400px] lg:h-[500px] flex flex-col">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <Activity className="text-emerald-500" size={24} /> System Activity Log
-            </h3>
-            <div className="space-y-6 overflow-y-auto pr-2 custom-scrollbar flex-1">
-                {activities.map((log) => (
-                    <div key={log._id} className="flex gap-4 group">
-                        <div className="flex flex-col items-center pt-1">
-                            <div className="w-2.5 h-2.5 rounded-full bg-gray-300 group-hover:bg-emerald-500 transition-colors ring-4 ring-white shadow-sm"></div>
-                            <div className="w-px h-full bg-gray-100 my-1 group-last:hidden"></div>
-                        </div>
-                        <div className="pb-4 flex-1 border-b border-gray-50 last:border-0">
-                            <div className="flex items-start justify-between mb-1">
-                                <div className="flex items-center gap-2">
-                                    {log.user?.profilePicture ? (
-                                        <img src={getProfileImage(log.user.profilePicture)} className="w-5 h-5 rounded-full object-cover" alt="" />
-                                    ) : (
-                                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-[8px] font-bold text-emerald-700">{log.user?.name?.[0]}</div>
-                                    )}
-                                    <p className="text-sm font-bold text-gray-800">
-                                        {log.user?.name || 'Unknown User'} 
-                                        <span className="text-gray-400 font-normal text-xs ml-2 uppercase tracking-wide bg-gray-50 px-1.5 py-0.5 rounded">
-                                            {log.action.replace(/_/g, ' ')}
-                                        </span>
-                                    </p>
-                                </div>
-                                <span className="text-[10px] text-gray-400 font-bold whitespace-nowrap">
-                                    {new Date(log.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                            <p className="text-xs text-gray-500 leading-relaxed">{log.description}</p>
-                            {log.department && (
-                                <span className="inline-flex items-center gap-1 mt-2 text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                                    <Building2 size={8} /> {log.department.name}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
 };
 
 // --- MAIN COMPONENT ---
@@ -172,18 +96,16 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [pieData, setPieData] = useState([]); 
   const [rawPrograms, setRawPrograms] = useState([]); 
-  const [activities, setActivities] = useState([]); 
   const [loading, setLoading] = useState(true);
 
   const isStaff = user?.role === 'STAFF';
 
-  const [chartView, setChartView] = useState('productivity'); 
+  // --- CHART STATE ---
+  const [chartData, setChartData] = useState([]); 
   const [chartTimeFrame, setChartTimeFrame] = useState('1Y'); 
-  const [chartType, setChartType] = useState('area'); 
-  const [activeChartData, setActiveChartData] = useState([]); 
-  const [customRange, setCustomRange] = useState({ 
-    start: new Date(new Date().getFullYear() - 1, 0, 1).toISOString().split('T')[0], 
-    end: new Date().toISOString().split('T')[0] 
+  const [customRange, setCustomRange] = useState({
+      start: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+      end: new Date().toISOString().split('T')[0]
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -194,8 +116,6 @@ const AdminDashboard = () => {
   // --- FETCH DATA ---
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
-    
-    // Note: We removed the Profile Check here because ProtectedRoute handles it now.
     
     const fetchDashboardData = async () => {
         try {
@@ -208,84 +128,71 @@ const AdminDashboard = () => {
           const programsRes = await API.get('/programs'); 
           setRawPrograms(Array.isArray(programsRes.data) ? programsRes.data : []);
 
-          if (!isStaff) {
-              const activityRes = await API.get('/activities');
-              setActivities(activityRes.data);
-          }
-
         } catch (err) { console.error("Dashboard fetch error", err); } 
         finally { setLoading(false); }
     };
     fetchDashboardData();
-  }, [user, navigate, isStaff]);
+  }, [user, navigate]);
 
-  // --- ACTIONS ---
-  
-  const handleNavClick = (tabName) => {
-      setActiveTab(tabName);
-      setIsSidebarOpen(false); 
-  };
-
-  const handleDepartmentClick = () => { 
-      navigate('/departments'); 
-      setIsSidebarOpen(false); 
-  };
-
-  const handleLogout = () => { 
-      localStorage.removeItem('token'); 
-      localStorage.removeItem('user'); 
-      setIsSidebarOpen(false);
-      navigate('/login'); 
-  };
-
-  // --- CHART LOGIC ---
+  // --- DATA PROCESSING (DYNAMIC DATE FILTERING) ---
   useEffect(() => {
     if (!rawPrograms.length) return;
+
     const now = new Date();
     let startDate, endDate;
     let granularity = 'Month'; 
 
-    if (chartTimeFrame === '1D') { startDate = new Date(now.getTime() - 86400000); endDate = now; granularity = 'Hour'; } 
-    else if (chartTimeFrame === '1W') { startDate = new Date(now.getTime() - 604800000); endDate = now; granularity = 'Day'; } 
-    else if (chartTimeFrame === '1M') { startDate = new Date(now.getTime() - 2592000000); endDate = now; granularity = 'Day'; } 
-    else if (chartTimeFrame === '1Y') { startDate = new Date(now.getFullYear(), 0, 1); endDate = now; granularity = 'Month'; } 
+    if (chartTimeFrame === '1W') { startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); endDate = now; granularity = 'Day'; } 
+    else if (chartTimeFrame === '1M') { startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); endDate = now; granularity = 'Day'; }
+    else if (chartTimeFrame === '6M') { startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000); endDate = now; granularity = 'Month'; }
+    else if (chartTimeFrame === '1Y') { startDate = new Date(now.getFullYear(), 0, 1); endDate = now; granularity = 'Month'; }
+    else if (chartTimeFrame === 'All') { startDate = new Date(2023, 0, 1); endDate = now; granularity = 'Year'; }
     else if (chartTimeFrame === 'Custom') {
         startDate = new Date(customRange.start);
         endDate = new Date(customRange.end);
-        endDate.setHours(23, 59, 59, 999);
-        const diffDays = Math.ceil(Math.abs(endDate - startDate) / 86400000);
-        if (diffDays <= 2) granularity = 'Hour';
-        else if (diffDays <= 60) granularity = 'Day';
-        else granularity = 'Month'; 
+        const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        granularity = diffDays > 60 ? 'Month' : 'Day';
     }
 
     const dataMap = {};
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     let current = new Date(startDate);
     while (current <= endDate) {
         let label = '';
-        if (granularity === 'Hour') { label = current.toLocaleTimeString([], { hour: '2-digit' }); current.setHours(current.getHours() + 1); } 
-        else if (granularity === 'Day') { label = chartTimeFrame === '1W' ? days[current.getDay()] : `${months[current.getMonth()]} ${current.getDate()}`; current.setDate(current.getDate() + 1); } 
-        else if (granularity === 'Month') { label = months[current.getMonth()]; current.setMonth(current.getMonth() + 1); }
-        dataMap[label] = 0;
+        if (granularity === 'Day') label = `${current.getDate()} ${months[current.getMonth()]}`;
+        else if (granularity === 'Month') label = `${months[current.getMonth()]} '${current.getFullYear().toString().substr(-2)}`;
+        else label = current.getFullYear().toString();
+        
+        dataMap[label] = { name: label, Programs: 0, Impact: 0 };
+        
+        if (granularity === 'Day') current.setDate(current.getDate() + 1);
+        else if (granularity === 'Month') current.setMonth(current.getMonth() + 1);
+        else current.setFullYear(current.getFullYear() + 1);
     }
 
     rawPrograms.forEach(p => {
-        const pDate = new Date(p.date || p.createdAt); 
+        const pDate = new Date(p.date || p.createdAt);
         if (pDate >= startDate && pDate <= endDate) {
             let label = '';
-            if (granularity === 'Hour') label = pDate.toLocaleTimeString([], { hour: '2-digit' });
-            else if (granularity === 'Day') label = chartTimeFrame === '1W' ? days[pDate.getDay()] : `${months[pDate.getMonth()]} ${pDate.getDate()}`;
-            else if (granularity === 'Month') label = months[pDate.getMonth()];
-            if (dataMap[label] !== undefined) dataMap[label]++;
+            if (granularity === 'Day') label = `${pDate.getDate()} ${months[pDate.getMonth()]}`;
+            else if (granularity === 'Month') label = `${months[pDate.getMonth()]} '${pDate.getFullYear().toString().substr(-2)}`;
+            else label = pDate.getFullYear().toString();
+
+            if (dataMap[label]) {
+                dataMap[label].Programs += 1;
+                // ✅ UPDATED: Impact now refers to Beneficiaries
+                dataMap[label].Impact += (p.participantsCount || p.actualAttendance || 0);
+            }
         }
     });
 
-    setActiveChartData(Object.keys(dataMap).map(key => ({ name: key, value: dataMap[key] })));
+    setChartData(Object.values(dataMap));
   }, [rawPrograms, chartTimeFrame, customRange]);
 
+  const handleNavClick = (tabName) => { setActiveTab(tabName); setIsSidebarOpen(false); };
+  const handleDepartmentClick = () => { navigate('/departments'); setIsSidebarOpen(false); };
+  const handleLogout = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); setIsSidebarOpen(false); navigate('/login'); };
   const formatRole = (role) => role ? role.replace('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : 'Admin';
   const openProfileModal = () => { setIsProfileModalOpen(true); };
   const goToReport = (viewName) => { setReportView(viewName); setActiveTab('reports'); };
@@ -316,7 +223,7 @@ const AdminDashboard = () => {
           <NavItem variants={itemVariants} active={activeTab === 'dashboard'} onClick={() => handleNavClick('dashboard')} icon={<LayoutDashboard size={20} />} label="Overview" />
           <NavItem variants={itemVariants} active={false} onClick={handleDepartmentClick} icon={<Building2 size={20} />} label="Departments" />
           <NavItem variants={itemVariants} active={activeTab === 'users'} onClick={() => handleNavClick('users')} icon={<Users size={20} />} label={user?.role === 'SUPER_ADMIN' ? "Staff Management" : "Staff List"} />
-          <NavItem variants={itemVariants} active={activeTab === 'requests'} onClick={() => handleNavClick('requests')} icon={<FileCheck size={20} />} label="Program Requests" />
+          <NavItem variants={itemVariants} active={activeTab === 'requests'} onClick={() => handleNavClick('requests')} icon={<FileCheck size={20} />} label="Programs" />
           <NavItem variants={itemVariants} active={activeTab === 'reports'} onClick={() => handleNavClick('reports')} icon={<FileText size={20} />} label="Global Reports" />
           <NavItem variants={itemVariants} active={activeTab === 'broadcast'} onClick={() => handleNavClick('broadcast')} icon={<Megaphone size={20} />} label="Broadcast Center" />
           <NavItem variants={itemVariants} active={activeTab === 'settings'} onClick={() => handleNavClick('settings')} icon={<Settings size={20} />} label="System Settings" />
@@ -354,13 +261,14 @@ const AdminDashboard = () => {
           
           {activeTab === 'dashboard' && (
             <div className="space-y-8 animate-enter">
+              {/* HERO CARD */}
               <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-emerald-800 to-green-600 shadow-xl p-8 md:p-10 text-white">
                 <div className="relative z-10">
                   <h3 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, {user?.name?.split(' ')[0] || 'Admin'}! 👋</h3>
                   <p className="text-emerald-100 max-w-2xl text-sm md:text-base">
                       {isStaff 
                         ? "Here is your program performance breakdown and impact metrics." 
-                        : "Here is your operational overview and system activity log."}
+                        : "Here is your operational overview and analytics."}
                   </p>
                 </div>
                 <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
@@ -378,28 +286,93 @@ const AdminDashboard = () => {
                  <StatCard onClick={() => setActiveTab('requests')} title={stats?.card6?.label} value={stats?.card6?.value} icon={<AlertCircle size={24}/>} color="bg-red-50 text-red-600" warning={stats?.card6?.value > 0} />
               </div>
 
-              {/* LOGS vs CHARTS */}
+              {/* ANALYTICS SECTION */}
               {!isStaff ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <ActivityFeed activities={activities} />
-                      <div className="h-[350px] lg:h-[500px]">
-                          <ExpandableChartCard><DepartmentChart data={pieData} colors={CHART_COLORS} /></ExpandableChartCard>
+                  <div className="space-y-8">
+                      {/* CHART 1: PROGRAMS vs IMPACT */}
+                      <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 h-auto relative overflow-hidden">
+                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                              <h4 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                                  <TrendingUp className="text-emerald-500"/> Organizational Trends
+                              </h4>
+                              
+                              <div className="flex flex-wrap gap-2">
+                                  {['1W', '1M', '6M', '1Y', 'All', 'Custom'].map(tf => (
+                                      <button 
+                                          key={tf}
+                                          onClick={() => setChartTimeFrame(tf)}
+                                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartTimeFrame === tf ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+                                      >
+                                          {tf}
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          {chartTimeFrame === 'Custom' && (
+                              <div className="flex gap-4 mb-6 bg-gray-50 p-4 rounded-xl items-center animate-in slide-in-from-top-2">
+                                  <div className="flex flex-col">
+                                      <label className="text-[10px] font-bold text-gray-400 uppercase">Start Date</label>
+                                      <input type="date" value={customRange.start} onChange={e => setCustomRange({...customRange, start: e.target.value})} className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-emerald-500"/>
+                                  </div>
+                                  <div className="h-px w-8 bg-gray-300"></div>
+                                  <div className="flex flex-col">
+                                      <label className="text-[10px] font-bold text-gray-400 uppercase">End Date</label>
+                                      <input type="date" value={customRange.end} onChange={e => setCustomRange({...customRange, end: e.target.value})} className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-emerald-500"/>
+                                  </div>
+                              </div>
+                          )}
+                          
+                          <div className="h-[350px] w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#9ca3af'}} dy={10} />
+                                      
+                                      {/* Left Axis: Programs (Red) */}
+                                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#ef4444'}} />
+                                      
+                                      {/* Right Axis: Impact (Green) */}
+                                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#10b981'}} />
+                                      
+                                      <RechartsTooltip content={<CustomChartTooltip />} />
+                                      
+                                      <Line yAxisId="left" name="Programs" type="monotone" dataKey="Programs" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, fill: '#ef4444', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                                      {/* ✅ UPDATED NAME: Impact (Beneficiaries) */}
+                                      <Line yAxisId="right" name="Impact (Beneficiaries)" type="monotone" dataKey="Impact" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                                  </LineChart>
+                              </ResponsiveContainer>
+                          </div>
+                      </div>
+
+                      {/* CHART 2: DEPARTMENT DISTRIBUTION */}
+                      <div className="h-[400px]">
+                          <ExpandableChartCard>
+                              <DepartmentChart data={pieData} colors={CHART_COLORS} />
+                          </ExpandableChartCard>
                       </div>
                   </div>
               ) : (
-                  <div className="space-y-8">
-                      {chartView === 'impact' ? (
-                          <ExpandableChartCard><ImpactChart onBack={() => setChartView('productivity')} /></ExpandableChartCard>
-                      ) : (
-                          <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 h-[350px] lg:h-[500px] relative overflow-hidden">
-                              <div className="flex justify-between items-center mb-6">
-                                  <h4 className="font-bold text-gray-800 flex items-center gap-2"><Activity className="text-emerald-500"/> Your Productivity</h4>
-                              </div>
-                              <ResponsiveContainer width="100%" height="90%">
-                                  <AreaChart data={activeChartData}><ChartGlowDef /><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" /><XAxis dataKey="name" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} /><RechartsTooltip /><Area type="linear" dataKey="value" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorGradient)" /></AreaChart>
-                              </ResponsiveContainer>
-                          </div>
-                      )}
+                  // STAFF PRODUCTIVITY CHART
+                  <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 h-[400px] relative overflow-hidden">
+                      <div className="flex justify-between items-center mb-6">
+                          <h4 className="font-bold text-gray-800 flex items-center gap-2"><Activity className="text-emerald-500"/> Your Productivity</h4>
+                      </div>
+                      <ResponsiveContainer width="100%" height="90%">
+                          <AreaChart data={chartData}>
+                              <defs>
+                                <linearGradient id="colorPrograms" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.5}/>
+                                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9ca3af'}} />
+                              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9ca3af'}} />
+                              <RechartsTooltip content={<CustomChartTooltip />} />
+                              <Area type="monotone" dataKey="Programs" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorPrograms)" />
+                          </AreaChart>
+                      </ResponsiveContainer>
                   </div>
               )}
             </div>
@@ -417,10 +390,7 @@ const AdminDashboard = () => {
           </div>
         </main>
         
-        {/* MODALS */}
         <AddStaffModal isOpen={isStaffModalOpen} onClose={() => setIsStaffModalOpen(false)} onSuccess={() => window.location.reload()} />
-        
-        {/* NOTE: CompleteProfileModal is gone from here. ProtectedRoute handles it now. */}
         
         {isProfileModalOpen && (
           <div className="fixed inset-0 bg-emerald-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-enter">
@@ -452,7 +422,6 @@ const AdminDashboard = () => {
   );
 };
 
-// ... (Sub Components NavItem and StatCard kept as is) ...
 const NavItem = ({ active, icon, label, onClick, variants }) => (
   <motion.div variants={variants} onClick={onClick} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all relative overflow-hidden group ${active ? 'bg-emerald-800/80 text-white shadow-lg translate-x-1' : 'text-emerald-100/70 hover:bg-emerald-800/50 hover:text-white'}`}>
     <motion.div whileHover={{ scale: 1.1, rotate: 5 }} transition={{ type: "spring", stiffness: 400 }}>{icon}</motion.div>

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import API from '../services/api'; 
-import { motion, AnimatePresence } from 'framer-motion'; // ✅ Smoother Animations
+import { motion, AnimatePresence } from 'framer-motion'; 
 import { 
   User, Mail, Phone, Calendar, MapPin, CheckCircle, Loader2, 
-  AlertCircle, Sparkles, ChevronDown, Lock, FileText, Info
+  AlertCircle, Sparkles, ChevronDown, Lock 
 } from 'lucide-react';
 
 import logo from '../assets/logo.png'; 
@@ -17,7 +17,7 @@ const PublicRegistration = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  // Core fields
+  // Core fields state
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -97,7 +97,7 @@ const PublicRegistration = () => {
 
   // --- COMPONENT: DYNAMIC FIELD RENDERER ---
   const renderField = (field, index) => {
-      const fieldKey = field.label; 
+      const fieldKey = field.label; // Using label as key for simplicity (Backend maps this to 'data')
       const val = formData[fieldKey] || '';
       
       const labelClass = "text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block ml-1";
@@ -210,7 +210,7 @@ const PublicRegistration = () => {
         </div>
   );
 
-  const hasCustomFields = program?.registration?.formFields?.length > 0;
+  const customFields = program?.registration?.formFields || [];
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans selection:bg-emerald-500/30 selection:text-emerald-200 pb-20">
@@ -320,7 +320,7 @@ const PublicRegistration = () => {
 
                     <form onSubmit={handleSubmit} className="space-y-8">
                         
-                        {/* SECTION 1: CONTACT INFO */}
+                        {/* SECTION 1: CONTACT INFO (Fixed Core Fields) */}
                         <div className="space-y-5">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
                                 <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">1</span>
@@ -367,58 +367,23 @@ const PublicRegistration = () => {
                             </div>
                         </div>
 
-                        {/* SECTION 2: ADDITIONAL INFO (Dynamic or Default) */}
-                        <div className="space-y-5">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
-                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">2</span>
-                                Participant Details
-                            </h3>
+                        {/* SECTION 2: ADDITIONAL INFO (Dynamic Only) */}
+                        {customFields.length > 0 && (
+                            <div className="space-y-5">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">2</span>
+                                    Participant Details
+                                </h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                {hasCustomFields ? (
-                                    // DYNAMIC FIELDS RENDERER
-                                    program.registration.formFields.map((field, idx) => (
-                                        <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    {customFields.map((field, idx) => (
+                                        <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }} className={field.fieldType === 'textarea' ? "md:col-span-2" : ""}>
                                             {renderField(field, idx)}
                                         </motion.div>
-                                    ))
-                                ) : (
-                                    // FALLBACK: OLD DEFAULT FIELDS
-                                    <>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block ml-1">Gender</label>
-                                            <div className="relative">
-                                                <select className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium appearance-none focus:border-emerald-500 outline-none"
-                                                    value={formData.gender || ''}
-                                                    onChange={e => handleChange('gender', e.target.value)}
-                                                >
-                                                    <option value="">Select Gender</option>
-                                                    <option value="Male">Male</option>
-                                                    <option value="Female">Female</option>
-                                                </select>
-                                                <ChevronDown size={16} className="absolute right-4 top-4 text-slate-400 pointer-events-none"/>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block ml-1">State of Residence</label>
-                                            <input className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:border-emerald-500 outline-none" 
-                                                placeholder="e.g. Lagos"
-                                                value={formData.state || ''}
-                                                onChange={e => handleChange('state', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block ml-1">Organization / School</label>
-                                            <input className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:border-emerald-500 outline-none" 
-                                                placeholder="Where do you work or study?"
-                                                value={formData.organization || ''}
-                                                onChange={e => handleChange('organization', e.target.value)}
-                                            />
-                                        </div>
-                                    </>
-                                )}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* SECTION 3: CONSENT & SUBMIT */}
                         <div className="pt-4 border-t border-slate-100">
@@ -431,7 +396,7 @@ const PublicRegistration = () => {
                                     <CheckCircle size={12} className="absolute left-1 top-1 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"/>
                                 </div>
                                 <span className="text-xs text-slate-500 leading-snug font-medium group-hover:text-slate-700 transition-colors">
-                                    I hereby confirm that the information provided is accurate and I agree to the terms of registration for this event.
+                                    I hereby confirm that the information provided is accurate.
                                 </span>
                             </label>
 
