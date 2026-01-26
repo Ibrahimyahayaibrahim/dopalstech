@@ -6,17 +6,20 @@ import {
   Loader2, CheckCircle, Clock, Layers, Building2, User
 } from 'lucide-react';
 
+// --- IMPORT THE CHART COMPONENT ---
+import ImpactChart from './ImpactChart';
+
 const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; 
 
 const GlobalReports = () => {
   const { state } = useLocation(); 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('programs');
   const [loading, setLoading] = useState(true);
   
   // Data States
   const [stats, setStats] = useState(null);
   const [deptStats, setDeptStats] = useState([]);
-  const [activities, setActivities] = useState([]); // ✅ New Activity State
+  const [activities, setActivities] = useState([]); 
 
   // User State
   const user = JSON.parse(localStorage.getItem('user'));
@@ -92,11 +95,38 @@ const GlobalReports = () => {
 
       {/* NAVIGATION TABS */}
       <div className="flex gap-2 border-b border-gray-100 overflow-x-auto print:hidden">
-          <TabButton id="overview" label={isStaff ? "Overview" : "Activity Feed"} icon={<Activity size={16}/>} active={activeTab} onClick={setActiveTab}/>
-          <TabButton id="departments" label="Departments" icon={<Briefcase size={16}/>} active={activeTab} onClick={setActiveTab}/>
-          <TabButton id="programs" label="Programs" icon={<Layers size={16}/>} active={activeTab} onClick={setActiveTab}/>
-          <TabButton id="impact" label="Impact" icon={<Users size={16}/>} active={activeTab} onClick={setActiveTab}/>
+        <TabButton id="programs" label="Programs" icon={<Layers size={16}/>} active={activeTab} onClick={setActiveTab}/>
+            <TabButton id="departments" label="Departments" icon={<Briefcase size={16}/>} active={activeTab} onClick={setActiveTab}/>
+           <TabButton id="impact" label="Impact" icon={<Users size={16}/>} active={activeTab} onClick={setActiveTab}/>
+         <TabButton id="overview" label={isStaff ? "Overview" : "Activity Feed"} icon={<Activity size={16}/>} active={activeTab} onClick={setActiveTab}/>
       </div>
+    
+    {/* --- VIEW 3: PROGRAMS BREAKDOWN --- */}
+      {(activeTab === 'programs' || activeTab === 'pending') && (
+          <div className="space-y-6 animate-enter">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <StatusCard label="Total Created" value={stats?.overview?.totalPrograms} color="bg-gray-100 text-gray-600"/>
+                  <StatusCard label="Active / Ongoing" value={stats?.overview?.activePrograms} color="bg-emerald-100 text-emerald-700"/>
+                  <StatusCard label="Completed" value={stats?.overview?.completedPrograms} color="bg-blue-100 text-blue-700"/>
+                  <StatusCard label="Pending Approval" value={stats?.overview?.pendingApprovals} color="bg-amber-100 text-amber-700"/>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                  <h3 className="font-bold text-gray-800 mb-6">Programs by Type</h3>
+                  <div className="space-y-4">
+                      {stats?.breakdowns?.types?.map((type, idx) => (
+                          <div key={idx} className="flex items-center gap-4">
+                              <span className="w-32 text-sm font-bold text-gray-500">{type.name || 'Unspecified'}</span>
+                              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(type.value / stats.overview.totalPrograms) * 100}%` }}></div>
+                              </div>
+                              <span className="w-10 text-right font-bold text-gray-700">{type.value}</span>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      )}
 
       {/* --- VIEW 1: OVERVIEW (Split Logic) --- */}
       {activeTab === 'overview' && (
@@ -169,8 +199,6 @@ const GlobalReports = () => {
                           <ReportCard label="Total Programs" value={deptStats.find(d => user.departments?.some(ud => (ud._id||ud) === d._id))?.programCount || 0} icon={<Briefcase size={24}/>} color="text-purple-600" bg="bg-purple-50"/>
                           <ReportCard label="Active Now" value={deptStats.find(d => user.departments?.some(ud => (ud._id||ud) === d._id))?.activePrograms || 0} icon={<Activity size={24}/>} color="text-emerald-600" bg="bg-emerald-50"/>
                       </div>
-                      
-                      {/* Show Departments Table for Staff too as requested */}
                       <DepartmentTable deptStats={deptStats} />
                   </div>
               )}
@@ -184,54 +212,13 @@ const GlobalReports = () => {
           </div>
       )}
 
-      {/* --- VIEW 3: PROGRAMS BREAKDOWN --- */}
-      {(activeTab === 'programs' || activeTab === 'pending') && (
-          <div className="space-y-6 animate-enter">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <StatusCard label="Total Created" value={stats?.overview?.totalPrograms} color="bg-gray-100 text-gray-600"/>
-                  <StatusCard label="Active / Ongoing" value={stats?.overview?.activePrograms} color="bg-emerald-100 text-emerald-700"/>
-                  <StatusCard label="Completed" value={stats?.overview?.completedPrograms} color="bg-blue-100 text-blue-700"/>
-                  <StatusCard label="Pending Approval" value={stats?.overview?.pendingApprovals} color="bg-amber-100 text-amber-700"/>
-              </div>
+      
 
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                  <h3 className="font-bold text-gray-800 mb-6">Programs by Type</h3>
-                  <div className="space-y-4">
-                      {stats?.breakdowns?.types?.map((type, idx) => (
-                          <div key={idx} className="flex items-center gap-4">
-                              <span className="w-32 text-sm font-bold text-gray-500">{type.name || 'Unspecified'}</span>
-                              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(type.value / stats.overview.totalPrograms) * 100}%` }}></div>
-                              </div>
-                              <span className="w-10 text-right font-bold text-gray-700">{type.value}</span>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-          </div>
-      )}
-
-      {/* --- VIEW 4: IMPACT ANALYSIS --- */}
+      {/* --- VIEW 4: IMPACT ANALYSIS (UPDATED WITH GRAPH) --- */}
       {activeTab === 'impact' && (
-          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-enter text-center py-16">
-              <div className="w-24 h-24 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Users size={48}/>
-              </div>
-              <h3 className="text-4xl font-extrabold text-gray-800 mb-2">{stats?.overview?.peopleImpacted?.toLocaleString()}</h3>
-              <p className="text-gray-500 font-medium uppercase tracking-widest text-sm">Total Lives Impacted</p>
-              
-              <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto text-left">
-                  <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                      <h4 className="font-bold text-gray-700 mb-2">Highest Impact Dept</h4>
-                      <p className="text-2xl font-bold text-emerald-600">{deptStats.sort((a,b) => b.impact - a.impact)[0]?.name || 'N/A'}</p>
-                  </div>
-                  <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                      <h4 className="font-bold text-gray-700 mb-2">Avg Participants / Program</h4>
-                      <p className="text-2xl font-bold text-blue-600">
-                          {Math.round(stats?.overview?.peopleImpacted / (stats?.overview?.totalPrograms || 1))}
-                      </p>
-                  </div>
-              </div>
+          <div className="animate-enter h-[600px] w-full">
+              {/* This renders your new complex chart in full size */}
+              <ImpactChart />
           </div>
       )}
 
