@@ -1,16 +1,7 @@
 import User from '../models/user.model.js';
 import generateToken from '../utils/generateToken.js';
-import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-
-// --- CONFIGURE EMAIL TRANSPORTER ---
-const transporter = nodemailer.createTransport({
-  service: 'gmail', 
-  auth: {
-    user: process.env.EMAIL_USER, // Set in .env
-    pass: process.env.EMAIL_PASS  // Set in .env
-  }
-});
+import { sendEmail } from '../services/brevoService.js'; // ✅ Using the new Brevo service
 
 // --- LOGIN USER ---
 export const login = async (req, res) => {
@@ -44,7 +35,7 @@ export const login = async (req, res) => {
   }
 };
 
-// --- FORGOT PASSWORD (SEND EMAIL) ---
+// --- FORGOT PASSWORD (SEND EMAIL VIA BREVO) ---
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -66,22 +57,27 @@ export const forgotPassword = async (req, res) => {
     // Create Reset Link
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
-    const message = `
-      <h1>Password Reset Request</h1>
-      <p>You requested a password reset. Please click the link below to verify your identity.</p>
-      <a href="${resetUrl}" clicktracking=off>${resetUrl}</a>
-      <p>This link expires in 10 minutes.</p>
+    const messageHtml = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h1 style="color: #333;">Password Reset Request</h1>
+        <p>You requested a password reset for your Dopals Tech account.</p>
+        <p>Please click the link below to verify your identity and set a new password:</p>
+        <a href="${resetUrl}" style="background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">Reset Password</a>
+        <p style="margin-top: 20px; font-size: 12px; color: #666;">This link expires in 10 minutes. If you did not request this, please ignore this email.</p>
+      </div>
     `;
 
     try {
-      await transporter.sendMail({
-        to: user.email,
-        subject: 'Password Reset Request',
-        html: message
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Reset Request - Dopals Tech',
+        html: messageHtml,
+        text: `You requested a password reset. Reset link: ${resetUrl}` // Plain text fallback
       });
 
       res.status(200).json({ success: true, data: "Email sent" });
     } catch (emailError) {
+      console.error("Email Sending Failed:", emailError);
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
@@ -89,11 +85,12 @@ export const forgotPassword = async (req, res) => {
     }
 
   } catch (error) {
+    console.error("Forgot Password Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// --- RESET PASSWORD (CHANGE IT) ---
+// --- RESET PASSWORD ---
 export const resetPassword = async (req, res) => {
   try {
     // Hash the incoming token to compare with DB
@@ -108,7 +105,7 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-    // Update Password (Middleware will hash this automatically)
+    // Update Password (Middleware in User model usually hashes this automatically)
     user.password = req.body.password;
     
     // Clear reset fields
@@ -119,6 +116,7 @@ export const resetPassword = async (req, res) => {
 
     res.status(200).json({ success: true, data: "Password updated successfully" });
   } catch (error) {
+    console.error("Reset Password Error:", error);
     res.status(500).json({ message: error.message });
   }
 };

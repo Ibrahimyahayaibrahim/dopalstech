@@ -106,8 +106,8 @@ const DepartmentList = ({ mode = 'MY' }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-emerald-700">
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-emerald-700 dark:text-emerald-400">
           <Loader2 className="animate-spin" size={22} />
           <span className="font-semibold">Loading departments…</span>
         </div>
@@ -121,15 +121,15 @@ const DepartmentList = ({ mode = 'MY' }) => {
     : 'Departments you are currently assigned to.';
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Sticky Glass Header */}
-      <div className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/70 backdrop-blur">
+      <div className="sticky top-0 z-30 border-b border-slate-200/70 dark:border-gray-800 bg-white/70 dark:bg-gray-900/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="inline-flex items-center gap-2 text-slate-500 hover:text-emerald-700 transition-colors font-semibold w-fit"
+                className="inline-flex items-center gap-2 text-slate-500 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors font-semibold w-fit"
               >
                 <ArrowLeft size={18} />
                 Back to Dashboard
@@ -139,14 +139,14 @@ const DepartmentList = ({ mode = 'MY' }) => {
                 {isSuperAdmin && (
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition"
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 dark:shadow-none transition"
                   >
                     <Plus size={18} />
                     Create Dept
                   </button>
                 )}
 
-                <div className="flex gap-1 bg-white rounded-2xl border border-slate-200 p-1 shadow-sm">
+                <div className="flex gap-1 bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-1 shadow-sm">
                   {!isSuperAdmin && (
                     <button
                       onClick={() => navigate('/departments/my')}
@@ -154,7 +154,7 @@ const DepartmentList = ({ mode = 'MY' }) => {
                         ${
                           !isViewingAll
                             ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'text-slate-500 hover:bg-slate-50'
+                            : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
                         }`}
                     >
                       <Users size={16} />
@@ -168,7 +168,7 @@ const DepartmentList = ({ mode = 'MY' }) => {
                       ${
                         isViewingAll
                           ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'text-slate-500 hover:bg-slate-50'
+                          : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
                       }`}
                   >
                     <Globe size={16} />
@@ -181,37 +181,37 @@ const DepartmentList = ({ mode = 'MY' }) => {
             {/* Title + Controls */}
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
-                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
+                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
                   {pageTitle}
                 </h1>
-                <p className="text-slate-500 text-sm md:text-base mt-1">{pageSubtitle}</p>
+                <p className="text-slate-500 dark:text-gray-400 text-sm md:text-base mt-1">{pageSubtitle}</p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                 {/* Search */}
                 <div className="relative">
                   <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600/60"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600/60 dark:text-emerald-400/60"
                     size={18}
                   />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search departments…"
-                    className="w-full sm:w-80 rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="w-full sm:w-80 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-10 pr-3 py-2 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-900/30 transition-all"
                   />
                 </div>
 
                 {/* Sort */}
                 <div className="relative">
                   <ArrowUpDown
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600/60"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600/60 dark:text-emerald-400/60"
                     size={18}
                   />
                   <select
                     value={sort}
                     onChange={(e) => setSort(e.target.value)}
-                    className="w-full sm:w-56 rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="w-full sm:w-56 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-10 pr-3 py-2 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-900/30 transition-all cursor-pointer"
                   >
                     <option value="name-asc">Name (A → Z)</option>
                     <option value="name-desc">Name (Z → A)</option>
@@ -223,12 +223,12 @@ const DepartmentList = ({ mode = 'MY' }) => {
             </div>
 
             {/* Mini summary */}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 border border-emerald-100">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-gray-400">
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-1 border border-emerald-100 dark:border-emerald-800">
                 <Building2 size={14} />
                 {filtered.length} shown
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-gray-800 px-3 py-1">
                 <Users size={14} />
                 {departments.length} total loaded
               </span>
@@ -249,9 +249,9 @@ const DepartmentList = ({ mode = 'MY' }) => {
                 <div
                   key={dept._id}
                   onClick={() => navigate(`/departments/${dept._id}`)}
-                  className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:border-emerald-200"
+                  className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-700/50"
                 >
-                  {/* top accent (your dashboard vibe) */}
+                  {/* top accent */}
                   <div className="h-1 w-full bg-gradient-to-r from-emerald-900 via-emerald-700 to-emerald-500 opacity-80" />
 
                   {/* delete */}
@@ -261,7 +261,7 @@ const DepartmentList = ({ mode = 'MY' }) => {
                         e.stopPropagation();
                         handleDelete(dept._id, dept.name);
                       }}
-                      className="absolute top-4 right-4 z-10 rounded-full border border-slate-200 bg-white/80 p-2 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition"
+                      className="absolute top-4 right-4 z-10 rounded-full border border-slate-200 dark:border-gray-600 bg-white/80 dark:bg-gray-700/80 p-2 text-slate-400 dark:text-gray-400 hover:text-red-500 hover:border-red-200 dark:hover:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
                       title="Delete Department"
                     >
                       <Trash2 size={18} />
@@ -272,38 +272,38 @@ const DepartmentList = ({ mode = 'MY' }) => {
                     <div>
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 rounded-2xl border border-emerald-100 bg-emerald-50 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition">
+                          <div className="h-12 w-12 rounded-2xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition">
                             <Building2 size={22} />
                           </div>
-                          <div className="text-xs text-slate-500">
-                            <div className="font-semibold text-slate-700">Department</div>
-                            <div className="text-slate-400">Click to open</div>
+                          <div className="text-xs text-slate-500 dark:text-gray-400">
+                            <div className="font-semibold text-slate-700 dark:text-gray-200">Department</div>
+                            <div className="text-slate-400 dark:text-gray-500">Click to open</div>
                           </div>
                         </div>
                       </div>
 
-                      <h3 className="text-lg font-semibold text-slate-900 pr-10 leading-snug">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white pr-10 leading-snug">
                         {dept.name}
                       </h3>
 
-                      <p className="mt-2 text-sm text-slate-500 line-clamp-2">
+                      <p className="mt-2 text-sm text-slate-500 dark:text-gray-400 line-clamp-2">
                         {dept.description || 'No description provided.'}
                       </p>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div className="mt-6 pt-4 border-t border-slate-100 dark:border-gray-700 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-gray-700 px-3 py-1 text-xs font-bold text-slate-600 dark:text-gray-300">
                           <LayoutGrid size={14} />
                           {programs} Programs
                         </div>
-                        <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-gray-700 px-3 py-1 text-xs font-bold text-slate-600 dark:text-gray-300">
                           <Users size={14} />
                           {staff} Staff
                         </div>
                       </div>
 
-                      <div className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 group-hover:translate-x-1 transition-transform">
+                      <div className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">
                         Details <ArrowRight size={16} />
                       </div>
                     </div>
@@ -311,21 +311,21 @@ const DepartmentList = ({ mode = 'MY' }) => {
 
                   {/* hover glow (emerald) */}
                   <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition">
-                    <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-emerald-200 blur-3xl opacity-40" />
+                    <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-emerald-200 dark:bg-emerald-900 blur-3xl opacity-40 dark:opacity-20" />
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">
-            <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700 border border-emerald-100">
+          <div className="rounded-2xl border border-dashed border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-10 text-center">
+            <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
               <Lock size={28} />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               {isViewingAll ? 'No Departments Found' : 'No Access Assigned'}
             </h3>
-            <p className="text-slate-500 mt-2 max-w-lg mx-auto">
+            <p className="text-slate-500 dark:text-gray-400 mt-2 max-w-lg mx-auto">
               {isViewingAll
                 ? 'The organization structure is currently empty, or your search returned no matches.'
                 : 'You are not assigned to any department yet.'}
@@ -337,7 +337,7 @@ const DepartmentList = ({ mode = 'MY' }) => {
                   setQuery('');
                   setSort('name-asc');
                 }}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+                className="rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-bold text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-gray-600 transition"
               >
                 Reset Filters
               </button>
@@ -345,7 +345,7 @@ const DepartmentList = ({ mode = 'MY' }) => {
               {isSuperAdmin && isViewingAll && (
                 <button
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition"
+                  className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 dark:shadow-none transition"
                 >
                   Create First Department
                 </button>

@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../services/api';
 
-// ✅ IMPORT UI CONTEXT
+// ✅ IMPORT CONTEXTS
 import { useUI } from '../context/UIContext';
+import { useTheme } from '../context/ThemeContext'; // For Chart Colors
 
 // Loader
 import Loader from '../components/Loader';
@@ -33,6 +34,7 @@ const DepartmentDetails = () => {
   const navigate = useNavigate();
   
   const { showToast, confirmAction } = useUI();
+  const { theme } = useTheme(); // ✅ Get Theme for Charts
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ const DepartmentDetails = () => {
   const [selectedProgram, setSelectedProgram] = useState(null);
 
   // UI State
-  const [activeTab, setActiveTab] = useState('overview'); // Default to Overview
+  const [activeTab, setActiveTab] = useState('overview'); 
   const [programSearch, setProgramSearch] = useState('');
   const [staffSearch, setStaffSearch] = useState('');
 
@@ -61,6 +63,18 @@ const DepartmentDetails = () => {
   try { user = JSON.parse(localStorage.getItem('user')) || {}; } catch (e) { console.error(e); }
   const isSuperAdmin = user.role === 'SUPER_ADMIN';
 
+  // --- CHART THEME LOGIC ---
+  const isDark = theme === 'dark';
+  const axisColor = isDark ? '#9CA3AF' : '#94A3B8';
+  const gridColor = isDark ? '#374151' : '#f1f5f9';
+  const tooltipStyle = {
+    backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+    border: isDark ? '1px solid #374151' : 'none',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    borderRadius: '12px',
+    color: isDark ? '#F3F4F6' : '#1E293B'
+  };
+
   const fetchAllData = async () => {
     try {
       const response = await API.get(`/departments/${id}`);
@@ -75,13 +89,13 @@ const DepartmentDetails = () => {
 
   useEffect(() => { fetchAllData(); }, [id]);
 
-  // --- KPI & CHART CALCULATIONS (NO FINANCE) ---
+  // --- KPI & CHART CALCULATIONS ---
   const kpiData = useMemo(() => {
       if (!data) return null;
       const programs = data.programs || [];
       const staff = data.staff || [];
 
-      // 1. Execution Rate (Completed / Total)
+      // 1. Execution Rate
       const completedCount = programs.filter(p => p.status === 'Completed').length;
       const executionRate = programs.length > 0 ? Math.round((completedCount / programs.length) * 100) : 0;
 
@@ -96,7 +110,7 @@ const DepartmentDetails = () => {
       const activePrograms = programs.filter(p => p.status === 'Ongoing' || p.status === 'Approved').length;
       const loadRatio = activeStaff > 0 ? (activePrograms / activeStaff).toFixed(1) : 0;
 
-      // 4. Monthly Trend Data (Last 6 Months)
+      // 4. Monthly Trend Data
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const trendDataMap = {};
       const now = new Date();
@@ -143,22 +157,22 @@ const DepartmentDetails = () => {
 
   const getTypeInfo = (p) => {
     if (!p?.parentProgram && (p?.structure === 'Recurring' || p?.structure === 'Numerical')) {
-      return { key: 'Master', label: 'Master Blueprint', pill: 'bg-purple-50 text-purple-700 border-purple-200', stripe: 'bg-purple-500', icon: Layers };
+      return { key: 'Master', label: 'Master Blueprint', pill: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800', stripe: 'bg-purple-500', icon: Layers };
     }
     if (p?.parentProgram) {
-      return { key: 'Version', label: 'Batch / Version', pill: 'bg-blue-50 text-blue-700 border-blue-200', stripe: 'bg-blue-500', icon: Hash };
+      return { key: 'Version', label: 'Batch / Version', pill: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800', stripe: 'bg-blue-500', icon: Hash };
     }
-    return { key: 'Standard', label: 'Standard', pill: 'bg-slate-50 text-slate-700 border-slate-200', stripe: 'bg-emerald-500', icon: null };
+    return { key: 'Standard', label: 'Standard', pill: 'bg-slate-50 dark:bg-gray-700/50 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-600', stripe: 'bg-emerald-500', icon: null };
   };
 
   const statusStyles = (status) => {
     const map = {
-      Approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      Ongoing: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      Completed: 'bg-sky-50 text-sky-700 border-sky-200',
-      Pending: 'bg-amber-50 text-amber-700 border-amber-200',
-      Rejected: 'bg-red-50 text-red-700 border-red-200',
-      Cancelled: 'bg-slate-50 text-slate-700 border-slate-200',
+      Approved: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+      Ongoing: 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+      Completed: 'bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800',
+      Pending: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+      Rejected: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+      Cancelled: 'bg-slate-50 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-600',
     };
     return map[status] || map.Cancelled;
   };
@@ -229,22 +243,22 @@ const DepartmentDetails = () => {
   }, [staffRaw, staffSearch, staffRole, staffState]);
 
   if (loading) return <Loader text="Loading Department..." />;
-  if (!data) return <div className="p-10 text-center text-red-600 font-bold">Department Not Found</div>;
+  if (!data) return <div className="p-10 text-center text-red-600 dark:text-red-400 font-bold">Department Not Found</div>;
 
   const deptName = department?.name || 'Unnamed Department';
   const deptDesc = department?.description || 'No description available.';
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 md:px-8 py-6 animate-in fade-in pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 px-4 md:px-8 py-6 animate-in fade-in pb-20 transition-colors duration-300">
       
       {/* 1. TOP NAVIGATION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => navigate('/dashboard')} className="inline-flex items-center gap-2 text-slate-600 hover:text-emerald-700 transition-colors font-semibold">
+          <button onClick={() => navigate('/dashboard')} className="inline-flex items-center gap-2 text-slate-600 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors font-semibold">
             <ArrowLeft size={18} /> Back to Dashboard
           </button>
-          <span className="hidden sm:inline-block text-slate-300">•</span>
-          <button onClick={() => navigate('/departments')} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold inline-flex items-center gap-2 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition shadow-sm">
+          <span className="hidden sm:inline-block text-slate-300 dark:text-gray-600">•</span>
+          <button onClick={() => navigate('/departments')} className="px-4 py-2 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 rounded-xl text-sm font-bold inline-flex items-center gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-400 hover:border-emerald-200 dark:hover:border-emerald-800 transition shadow-sm">
             <Globe size={16} /> View All Depts
           </button>
         </div>
@@ -255,12 +269,12 @@ const DepartmentDetails = () => {
           <TabButton active={activeTab === 'staff'} onClick={() => setActiveTab('staff')}>Staff</TabButton>
 
           {activeTab === 'programs' && canCreateProgram && (
-            <button onClick={() => setIsProgramModalOpen(true)} className="ml-auto bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold inline-flex items-center gap-2 hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">
+            <button onClick={() => setIsProgramModalOpen(true)} className="ml-auto bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold inline-flex items-center gap-2 hover:bg-emerald-700 transition shadow-lg shadow-emerald-200/50 dark:shadow-none">
               <Plus size={16} /> New Program
             </button>
           )}
           {activeTab === 'staff' && canManageStaff && (
-            <button onClick={() => setIsStaffModalOpen(true)} className="ml-auto bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold inline-flex items-center gap-2 hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">
+            <button onClick={() => setIsStaffModalOpen(true)} className="ml-auto bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold inline-flex items-center gap-2 hover:bg-emerald-700 transition shadow-lg shadow-emerald-200/50 dark:shadow-none">
               <Plus size={16} /> Add Staff
             </button>
           )}
@@ -268,28 +282,28 @@ const DepartmentDetails = () => {
       </div>
 
       {/* 2. HERO CARD */}
-      <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm mb-8">
+      <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm mb-8 transition-colors duration-300">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-emerald-950 via-emerald-700 to-emerald-500 opacity-90" />
         <div className="p-6 relative flex flex-col lg:flex-row justify-between items-start gap-6">
             <div className="flex items-start gap-5">
-                <div className="w-14 h-14 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center text-emerald-700 shrink-0">
+                <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 rounded-2xl flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0">
                     <Building2 size={30} />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-extrabold text-slate-900">{deptName}</h1>
-                    <p className="text-slate-500 text-sm max-w-2xl mt-1">{deptDesc}</p>
+                    <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">{deptName}</h1>
+                    <p className="text-slate-500 dark:text-gray-400 text-sm max-w-2xl mt-1">{deptDesc}</p>
                 </div>
             </div>
             
             {/* Dept Head Mini Widget */}
-            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200">
+            <div className="flex items-center gap-3 bg-slate-50 dark:bg-gray-700/50 px-4 py-2 rounded-2xl border border-slate-200 dark:border-gray-600">
                 <Crown size={16} className="text-amber-500 fill-amber-500"/>
                 {departmentHead ? (
                     <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase">Head</p>
-                        <p className="text-sm font-bold text-slate-800">{departmentHead.name}</p>
+                        <p className="text-xs font-bold text-slate-400 dark:text-gray-400 uppercase">Head</p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-gray-200">{departmentHead.name}</p>
                     </div>
-                ) : <span className="text-sm text-slate-400 italic">No Head Assigned</span>}
+                ) : <span className="text-sm text-slate-400 dark:text-gray-500 italic">No Head Assigned</span>}
                 {isSuperAdmin && departmentHead && (
                     <button onClick={() => handleDemote(department._id)} className="ml-2 text-red-400 hover:text-red-600"><UserMinus size={16}/></button>
                 )}
@@ -299,22 +313,22 @@ const DepartmentDetails = () => {
 
       {/* 3. MAIN CONTENT AREA */}
       
-      {/* --- VIEW: OVERVIEW (KPIs - NO COST) --- */}
+      {/* --- VIEW: OVERVIEW (KPIs) --- */}
       {activeTab === 'overview' && kpiData && (
           <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
               
-              {/* KPI CARDS (3 Columns) */}
+              {/* KPI CARDS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <KpiCard title="Execution Rate" value={`${kpiData.executionRate}%`} icon={<Target size={20}/>} color="bg-emerald-50 text-emerald-600" />
-                  <KpiCard title="Total Beneficiaries" value={kpiData.totalBeneficiaries.toLocaleString()} icon={<Users size={20}/>} color="bg-blue-50 text-blue-600" />
-                  <KpiCard title="Staff Load Ratio" value={kpiData.loadRatio} subtitle="Programs/Staff" icon={<Activity size={20}/>} color="bg-purple-50 text-purple-600" />
+                  <KpiCard title="Execution Rate" value={`${kpiData.executionRate}%`} icon={<Target size={20}/>} color="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" />
+                  <KpiCard title="Total Beneficiaries" value={kpiData.totalBeneficiaries.toLocaleString()} icon={<Users size={20}/>} color="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" />
+                  <KpiCard title="Staff Load Ratio" value={kpiData.loadRatio} subtitle="Programs/Staff" icon={<Activity size={20}/>} color="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400" />
               </div>
 
               {/* CHARTS ROW */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Left: Impact Trend */}
-                  <div className="lg:col-span-2 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                      <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><TrendingUp size={18} className="text-emerald-500"/> Impact Velocity (6 Months)</h3>
+                  <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-slate-200 dark:border-gray-700 shadow-sm transition-colors">
+                      <h3 className="font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2"><TrendingUp size={18} className="text-emerald-500"/> Impact Velocity (6 Months)</h3>
                       <div className="h-[300px] w-full">
                           <ResponsiveContainer>
                               <AreaChart data={kpiData.trendData}>
@@ -324,10 +338,10 @@ const DepartmentDetails = () => {
                                           <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                                       </linearGradient>
                                   </defs>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10}/>
-                                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}}/>
-                                  <RechartsTooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}/>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor}/>
+                                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: axisColor, fontSize: 12}} dy={10}/>
+                                  <YAxis axisLine={false} tickLine={false} tick={{fill: axisColor, fontSize: 12}}/>
+                                  <RechartsTooltip contentStyle={tooltipStyle} itemStyle={{color: isDark ? '#F3F4F6' : '#1E293B'}}/>
                                   <Area type="monotone" dataKey="Beneficiaries" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorBen)" />
                               </AreaChart>
                           </ResponsiveContainer>
@@ -335,8 +349,8 @@ const DepartmentDetails = () => {
                   </div>
 
                   {/* Right: Program Status */}
-                  <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col">
-                      <h3 className="font-bold text-slate-800 mb-2">Program Health</h3>
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-slate-200 dark:border-gray-700 shadow-sm flex flex-col transition-colors">
+                      <h3 className="font-bold text-slate-800 dark:text-white mb-2">Program Health</h3>
                       <div className="flex-1 min-h-[250px] relative">
                           <ResponsiveContainer>
                               <PieChart>
@@ -345,17 +359,17 @@ const DepartmentDetails = () => {
                                           <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                                       ))}
                                   </Pie>
-                                  <RechartsTooltip />
+                                  <RechartsTooltip contentStyle={tooltipStyle} />
                               </PieChart>
                           </ResponsiveContainer>
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                              <span className="text-3xl font-black text-slate-800">{programsRaw.length}</span>
-                              <span className="text-xs text-slate-400 font-bold uppercase">Total</span>
+                              <span className="text-3xl font-black text-slate-800 dark:text-white">{programsRaw.length}</span>
+                              <span className="text-xs text-slate-400 dark:text-gray-500 font-bold uppercase">Total</span>
                           </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-4 justify-center">
                           {kpiData.statusData.map((entry, index) => (
-                              <div key={index} className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                              <div key={index} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-gray-400">
                                   <div className="w-2 h-2 rounded-full" style={{backgroundColor: CHART_COLORS[index % CHART_COLORS.length]}}></div>
                                   {entry.name} ({entry.value})
                               </div>
@@ -369,12 +383,12 @@ const DepartmentDetails = () => {
       {/* --- VIEW: PROGRAMS --- */}
       {activeTab === 'programs' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 md:p-5">
+          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-3xl shadow-sm p-4 md:p-5 transition-colors">
             <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
               <div className="relative flex-1">
-                <Search size={18} className="absolute left-3 top-3 text-slate-400" />
-                <input value={programSearch} onChange={(e) => setProgramSearch(e.target.value)} placeholder="Search programs..." className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 text-sm font-semibold text-slate-700" />
-                {programSearch && <button onClick={() => setProgramSearch('')} className="absolute right-3 top-2.5 p-1 rounded-full hover:bg-slate-200 text-slate-500"><X size={16}/></button>}
+                <Search size={18} className="absolute left-3 top-3 text-slate-400 dark:text-gray-500" />
+                <input value={programSearch} onChange={(e) => setProgramSearch(e.target.value)} placeholder="Search programs..." className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-700/50 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/30 text-sm font-semibold text-slate-700 dark:text-gray-200" />
+                {programSearch && <button onClick={() => setProgramSearch('')} className="absolute right-3 top-2.5 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-500 dark:text-gray-400"><X size={16}/></button>}
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
                 <SelectPill icon={<Filter size={14} />} value={programStatus} onChange={setProgramStatus} options={['All', 'Pending', 'Approved', 'Ongoing', 'Completed', 'Rejected']} label="Status" />
@@ -399,11 +413,11 @@ const DepartmentDetails = () => {
       {/* --- VIEW: STAFF --- */}
       {activeTab === 'staff' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 md:p-5">
+          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-3xl shadow-sm p-4 md:p-5 transition-colors">
             <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
               <div className="relative flex-1">
-                <Search size={18} className="absolute left-3 top-3 text-slate-400" />
-                <input value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)} placeholder="Search staff..." className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 text-sm font-semibold text-slate-700" />
+                <Search size={18} className="absolute left-3 top-3 text-slate-400 dark:text-gray-500" />
+                <input value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)} placeholder="Search staff..." className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-700/50 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/30 text-sm font-semibold text-slate-700 dark:text-gray-200" />
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
                 <SelectPill icon={<Shield size={14} />} value={staffRole} onChange={setStaffRole} options={['All', 'SUPER_ADMIN', 'ADMIN', 'STAFF']} label="Role" />
@@ -442,18 +456,18 @@ const DepartmentDetails = () => {
 /* --- SUB COMPONENTS --- */
 
 const KpiCard = ({ title, value, subtitle, icon, color }) => (
-    <div className="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm flex items-center gap-4 hover:border-emerald-200 hover:shadow-md transition cursor-default">
+    <div className="bg-white dark:bg-gray-800 p-5 rounded-[1.5rem] border border-slate-200 dark:border-gray-700 shadow-sm flex items-center gap-4 hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-md transition cursor-default">
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${color}`}>{icon}</div>
         <div>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{title}</p>
-            <p className="text-xl font-black text-slate-800">{value}</p>
-            {subtitle && <p className="text-[9px] text-slate-400 font-bold">{subtitle}</p>}
+            <p className="text-[10px] font-extrabold text-slate-400 dark:text-gray-500 uppercase tracking-wider">{title}</p>
+            <p className="text-xl font-black text-slate-800 dark:text-white">{value}</p>
+            {subtitle && <p className="text-[9px] text-slate-400 dark:text-gray-500 font-bold">{subtitle}</p>}
         </div>
     </div>
 );
 
 const TabButton = ({ active, onClick, children }) => (
-  <button onClick={onClick} className={`px-4 py-2 rounded-xl text-sm font-extrabold border transition ${active ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}>
+  <button onClick={onClick} className={`px-4 py-2 rounded-xl text-sm font-extrabold border transition ${active ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700'}`}>
     {children}
   </button>
 );
@@ -462,32 +476,22 @@ const SelectPill = ({ icon, label, value, onChange, options }) => {
   const normalized = Array.isArray(options) ? options.map((o) => (typeof o === 'string' ? { value: o, label: o } : o)) : [];
   return (
     <div className="relative w-full sm:w-[150px]">
-      <div className="absolute left-3 top-3 text-slate-400">{icon}</div>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full pl-9 pr-8 py-2.5 rounded-2xl border border-slate-200 bg-white text-xs font-extrabold text-slate-700 outline-none hover:bg-slate-50 focus:border-emerald-500 appearance-none cursor-pointer">
+      <div className="absolute left-3 top-3 text-slate-400 dark:text-gray-500">{icon}</div>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full pl-9 pr-8 py-2.5 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-extrabold text-slate-700 dark:text-gray-200 outline-none hover:bg-slate-50 dark:hover:bg-gray-700 focus:border-emerald-500 appearance-none cursor-pointer">
         {normalized.map((opt) => <option key={opt.value} value={opt.value}>{label}: {opt.label}</option>)}
       </select>
-      <Filter size={14} className="absolute right-3 top-3 text-slate-400 pointer-events-none"/>
+      <Filter size={14} className="absolute right-3 top-3 text-slate-400 dark:text-gray-500 pointer-events-none"/>
     </div>
   );
 };
 
-const Chip = ({ label, onClear, tone = 'emerald' }) => {
-  const styles = { emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100', slate: 'bg-slate-50 text-slate-700 border-slate-200' };
-  return (
-    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-extrabold ${styles[tone]}`}>
-      {label}
-      {onClear && <button onClick={onClear} className="hover:bg-white/70 rounded-full p-0.5"><X size={14} /></button>}
-    </span>
-  );
-};
-
 const EmptyState = ({ title, subtitle, actionLabel, onAction }) => (
-  <div className="bg-white border border-dashed border-slate-200 rounded-3xl p-10 text-center shadow-sm">
-    <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-2xl mb-4">✨</div>
-    <h4 className="font-extrabold text-slate-800">{title}</h4>
-    <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
+  <div className="bg-white dark:bg-gray-800 border border-dashed border-slate-200 dark:border-gray-700 rounded-3xl p-10 text-center shadow-sm">
+    <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 flex items-center justify-center text-2xl mb-4">✨</div>
+    <h4 className="font-extrabold text-slate-800 dark:text-white">{title}</h4>
+    <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{subtitle}</p>
     {actionLabel && onAction && (
-      <button onClick={onAction} className="mt-5 inline-flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-extrabold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200">
+      <button onClick={onAction} className="mt-5 inline-flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-extrabold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200/50 dark:shadow-none">
         <Plus size={16} /> {actionLabel}
       </button>
     )}
@@ -498,66 +502,66 @@ const ProgramCard = ({ program, typeInfo, statusClass, onOpen, canEdit, onEdit, 
   const TypeIcon = typeInfo?.icon;
   const dateText = typeInfo?.key === 'Master' ? 'Master Blueprint' : new Date(program?.date || '').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   return (
-    <div onClick={onOpen} className="relative overflow-hidden bg-white border border-slate-200 rounded-3xl shadow-sm hover:shadow-md transition cursor-pointer group">
+    <div onClick={onOpen} className="relative overflow-hidden bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-3xl shadow-sm hover:shadow-md transition cursor-pointer group">
       <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${typeInfo?.stripe || 'bg-emerald-500'}`} />
       <div className="p-5 pl-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-slate-50 border border-slate-200 text-slate-700 px-2 py-1 rounded-lg">{program?.type || 'Program'}</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 text-slate-700 dark:text-gray-300 px-2 py-1 rounded-lg">{program?.type || 'Program'}</span>
               {typeInfo?.key !== 'Standard' && (
                 <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-lg border inline-flex items-center gap-1 ${typeInfo.pill}`}>
                   {TypeIcon ? <TypeIcon size={12} /> : null} {typeInfo.label}
                 </span>
               )}
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-emerald-700 transition line-clamp-1">{program?.name}</h3>
-            <p className="text-sm text-slate-500 mt-1 line-clamp-2 min-h-[2.5em]">{program?.description || 'No description provided.'}</p>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition line-clamp-1">{program?.name}</h3>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1 line-clamp-2 min-h-[2.5em]">{program?.description || 'No description provided.'}</p>
           </div>
           <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-extrabold border inline-flex items-center gap-1 ${statusClass}`}>
             {program?.status === 'Completed' ? <CheckCircle size={14} /> : <Clock size={14} />} {program?.status || 'Unknown'}
           </span>
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-extrabold text-slate-500">
-          <span className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-2xl"><Calendar size={14} className="text-slate-400" /> {dateText}</span>
-          <span className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-2xl"><User size={14} className="text-slate-400" /> {program?.createdBy?.name || 'Unknown'}</span>
-          {typeInfo?.key === 'Master' && <span className="inline-flex items-center gap-2 bg-purple-50 border border-purple-100 text-purple-700 px-3 py-2 rounded-2xl"><Layers size={14} /> {program?.children?.length || 0} Batches</span>}
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-extrabold text-slate-500 dark:text-gray-400">
+          <span className="inline-flex items-center gap-2 bg-slate-50 dark:bg-gray-700/50 border border-slate-200 dark:border-gray-600 px-3 py-2 rounded-2xl"><Calendar size={14} className="text-slate-400 dark:text-gray-500" /> {dateText}</span>
+          <span className="inline-flex items-center gap-2 bg-slate-50 dark:bg-gray-700/50 border border-slate-200 dark:border-gray-600 px-3 py-2 rounded-2xl"><User size={14} className="text-slate-400 dark:text-gray-500" /> {program?.createdBy?.name || 'Unknown'}</span>
+          {typeInfo?.key === 'Master' && <span className="inline-flex items-center gap-2 bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 text-purple-700 dark:text-purple-300 px-3 py-2 rounded-2xl"><Layers size={14} /> {program?.children?.length || 0} Batches</span>}
         </div>
         {canEdit && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={(e) => { e.stopPropagation(); onEdit?.(); }} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-white text-slate-700 border-slate-200 hover:bg-slate-50 transition inline-flex items-center gap-2"><Shield size={14} className="text-slate-400" /> Edit</button>
-            {program?.status !== 'Completed' && <button onClick={(e) => { e.stopPropagation(); onComplete?.(); }} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 transition inline-flex items-center gap-2"><CheckCircle size={14} /> Mark Complete</button>}
+            <button onClick={(e) => { e.stopPropagation(); onEdit?.(); }} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 transition inline-flex items-center gap-2"><Shield size={14} className="text-slate-400 dark:text-gray-500" /> Edit</button>
+            {program?.status !== 'Completed' && <button onClick={(e) => { e.stopPropagation(); onComplete?.(); }} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition inline-flex items-center gap-2"><CheckCircle size={14} /> Mark Complete</button>}
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition"><div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-emerald-200 blur-3xl opacity-30" /></div>
+      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition"><div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-emerald-200 dark:bg-emerald-900 blur-3xl opacity-30 dark:opacity-20" /></div>
     </div>
   );
 };
 
 const StaffCard = ({ staff, isHead, canManage, canPromote, onPromote, onMove, onRemove, avatarUrl }) => (
-  <div className={`bg-white border rounded-3xl p-5 shadow-sm hover:shadow-md transition relative overflow-hidden ${isHead ? 'border-amber-200' : 'border-slate-200'}`}>
+  <div className={`bg-white dark:bg-gray-800 border rounded-3xl p-5 shadow-sm hover:shadow-md transition relative overflow-hidden ${isHead ? 'border-amber-200 dark:border-amber-800' : 'border-slate-200 dark:border-gray-700'}`}>
     {isHead && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500" />}
     <div className={`flex items-start gap-4 ${isHead ? 'pl-4' : ''}`}>
-      <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden shrink-0">
-        {avatarUrl ? <img src={avatarUrl} alt="Staff" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-extrabold text-slate-500">{(staff?.name || '?').charAt(0)}</div>}
+      <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 overflow-hidden shrink-0">
+        {avatarUrl ? <img src={avatarUrl} alt="Staff" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-extrabold text-slate-500 dark:text-gray-400">{(staff?.name || '?').charAt(0)}</div>}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-extrabold text-slate-900 truncate">{staff?.name || 'Unknown'}</p>
-          {isHead && <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-widest"><Crown size={12} className="text-amber-500 fill-amber-500" /> Head</span>}
-          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-full uppercase tracking-widest">{staff?.role || 'STAFF'}</span>
+          <p className="font-extrabold text-slate-900 dark:text-white truncate">{staff?.name || 'Unknown'}</p>
+          {isHead && <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full uppercase tracking-widest"><Crown size={12} className="text-amber-500 fill-amber-500" /> Head</span>}
+          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-slate-50 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-600 px-2 py-0.5 rounded-full uppercase tracking-widest">{staff?.role || 'STAFF'}</span>
         </div>
-        <p className="text-xs text-emerald-700 font-bold truncate mt-1">{staff?.position || 'Staff'}</p>
-        <p className="text-[11px] text-slate-500 truncate mt-1">{staff?.email || 'No email'}</p>
+        <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold truncate mt-1">{staff?.position || 'Staff'}</p>
+        <p className="text-[11px] text-slate-500 dark:text-gray-400 truncate mt-1">{staff?.email || 'No email'}</p>
       </div>
-      <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-extrabold border ${staff?.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : staff?.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{staff?.status || 'Unknown'}</span>
+      <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-extrabold border ${staff?.status === 'Active' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : staff?.status === 'Pending' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'}`}>{staff?.status || 'Unknown'}</span>
     </div>
     {canManage && (
       <div className={`mt-4 flex flex-wrap gap-2 ${isHead ? 'pl-4' : ''}`}>
-        {canPromote && <button onClick={onPromote} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 transition inline-flex items-center gap-2"><Shield size={14} /> Promote</button>}
-        <button onClick={onMove} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-white text-slate-700 border-slate-200 hover:bg-slate-50 transition inline-flex items-center gap-2"><ArrowRightLeft size={14} /> Move</button>
-        <button onClick={onRemove} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-red-50 text-red-700 border-red-100 hover:bg-red-100 transition inline-flex items-center gap-2"><Trash2 size={14} /> Remove</button>
+        {canPromote && <button onClick={onPromote} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition inline-flex items-center gap-2"><Shield size={14} /> Promote</button>}
+        <button onClick={onMove} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 transition inline-flex items-center gap-2"><ArrowRightLeft size={14} /> Move</button>
+        <button onClick={onRemove} className="px-4 py-2 rounded-2xl text-xs font-extrabold border bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/50 transition inline-flex items-center gap-2"><Trash2 size={14} /> Remove</button>
       </div>
     )}
   </div>

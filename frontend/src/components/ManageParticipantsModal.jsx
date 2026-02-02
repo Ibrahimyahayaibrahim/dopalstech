@@ -220,33 +220,27 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-6xl rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[92vh] sm:h-[85vh] border border-slate-200">
+      {/* ✅ Dark Mode Main Container */}
+      <div className="bg-white dark:bg-gray-900 w-full max-w-6xl rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[92vh] sm:h-[85vh] border border-slate-200 dark:border-gray-800 transition-colors duration-300">
 
         {/* HEADER */}
-        <div className="sticky top-0 z-20 bg-white/85 backdrop-blur border-b border-slate-200">
+        <div className="sticky top-0 z-20 bg-white/85 dark:bg-gray-900/85 backdrop-blur border-b border-slate-200 dark:border-gray-800">
           <div className="p-4 sm:p-6 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <Users className="text-emerald-600" size={20} /> Manage Participants
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Users className="text-emerald-600 dark:text-emerald-400" size={20} /> Manage Participants
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400 mt-1">
                   {program.name} •{' '}
-                  <span className="font-bold text-emerald-700">{total} Registered</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400">{total} Registered</span>
                   {searchTerm ? (
-                    <>
-                      {' '}
-                      • <span className="font-bold text-slate-700">{shown} shown</span>
-                    </>
+                    <> • <span className="font-bold text-slate-700 dark:text-gray-300">{shown} shown</span></>
                   ) : null}
                 </p>
               </div>
 
-              <button
-                onClick={onClose}
-                className="shrink-0 p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition"
-                aria-label="Close"
-              >
+              <button onClick={onClose} className="shrink-0 p-2 rounded-full text-slate-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition" aria-label="Close">
                 <X size={20} />
               </button>
             </div>
@@ -256,9 +250,9 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                 {/* Search */}
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={18} />
                   <input
-                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-800/30 transition-colors"
                     placeholder="Search participants…"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -267,68 +261,32 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
 
                 {/* Desktop actions */}
                 <div className="hidden sm:flex items-center gap-2">
-                  <button
-                    onClick={() => setIsAdding(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition"
-                  >
+                  <button onClick={() => setIsAdding(true)} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 dark:shadow-none transition">
                     <Plus size={18} /> Add New
                   </button>
-
                   <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-
-                  <button
-                    onClick={handleImportClick}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition"
-                  >
+                  <button onClick={handleImportClick} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 transition">
                     <Upload size={18} /> Import
                   </button>
-
-                  <button
-                    onClick={handleExportCSV}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-50 border border-emerald-100 text-emerald-800 hover:bg-emerald-100 transition"
-                  >
+                  <button onClick={handleExportCSV} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition">
                     <FileSpreadsheet size={18} /> Export
                   </button>
                 </div>
 
                 {/* Mobile actions dropdown */}
                 <div className="sm:hidden">
-                  <button
-                    onClick={() => setShowActions((s) => !s)}
-                    className="w-full inline-flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition"
-                  >
+                  <button onClick={() => setShowActions((s) => !s)} className="w-full inline-flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 transition">
                     Actions <ChevronDown size={18} className={`transition ${showActions ? 'rotate-180' : ''}`} />
                   </button>
-
                   {showActions && (
                     <div className="mt-2 grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => {
-                          setShowActions(false);
-                          setIsAdding(true);
-                        }}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition"
-                      >
+                      <button onClick={() => { setShowActions(false); setIsAdding(true); }} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition">
                         <Plus size={16} /> Add
                       </button>
-
-                      <button
-                        onClick={() => {
-                          setShowActions(false);
-                          handleImportClick();
-                        }}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition"
-                      >
+                      <button onClick={() => { setShowActions(false); handleImportClick(); }} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 transition">
                         <Upload size={16} /> Import
                       </button>
-
-                      <button
-                        onClick={() => {
-                          setShowActions(false);
-                          handleExportCSV();
-                        }}
-                        className="col-span-2 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold bg-emerald-50 border border-emerald-100 text-emerald-800 hover:bg-emerald-100 transition"
-                      >
+                      <button onClick={() => { setShowActions(false); handleExportCSV(); }} className="col-span-2 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition">
                         <FileSpreadsheet size={16} /> Export CSV
                       </button>
                     </div>
@@ -339,13 +297,10 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
 
             {/* ADD FORM */}
             {isAdding && (
-              <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5 animate-in slide-in-from-top duration-300">
+              <div className="mt-2 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/10 p-4 sm:p-5 animate-in slide-in-from-top duration-300">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-bold text-emerald-900">Register New Beneficiary</div>
-                  <button
-                    onClick={() => setIsAdding(false)}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-100 transition"
-                  >
+                  <div className="text-sm font-bold text-emerald-900 dark:text-emerald-100">Register New Beneficiary</div>
+                  <button onClick={() => setIsAdding(false)} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition">
                     <X size={16} /> Cancel
                   </button>
                 </div>
@@ -353,82 +308,40 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
                 <form onSubmit={handleAddManual} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {/* Core */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-600 uppercase">Full Name *</label>
-                    <input
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200"
-                      required
-                      value={coreData.fullName}
-                      onChange={(e) => handleCoreChange('fullName', e.target.value)}
-                    />
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-gray-400 uppercase">Full Name *</label>
+                    <input className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-800/30" required value={coreData.fullName} onChange={(e) => handleCoreChange('fullName', e.target.value)} />
                   </div>
-
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-600 uppercase">Email *</label>
-                    <input
-                      type="email"
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200"
-                      required
-                      value={coreData.email}
-                      onChange={(e) => handleCoreChange('email', e.target.value)}
-                    />
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-gray-400 uppercase">Email *</label>
+                    <input type="email" className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-800/30" required value={coreData.email} onChange={(e) => handleCoreChange('email', e.target.value)} />
                   </div>
-
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-600 uppercase">Phone *</label>
-                    <input
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200"
-                      required
-                      value={coreData.phone}
-                      onChange={(e) => handleCoreChange('phone', e.target.value)}
-                    />
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-gray-400 uppercase">Phone *</label>
+                    <input className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-800/30" required value={coreData.phone} onChange={(e) => handleCoreChange('phone', e.target.value)} />
                   </div>
 
                   {/* Dynamic fields */}
                   {program.registration?.formFields?.map((field, idx) => (
                     <div key={idx} className="space-y-1">
-                      <label className="text-[10px] font-bold text-emerald-800 uppercase">
+                      <label className="text-[10px] font-bold text-emerald-800 dark:text-emerald-400 uppercase">
                         {field.label} {field.required ? '*' : ''}
                       </label>
-
                       {field.fieldType === 'textarea' ? (
-                        <textarea
-                          rows={1}
-                          required={field.required}
-                          onChange={(e) => handleDynamicChange(field.label, e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200"
-                        />
+                        <textarea rows={1} required={field.required} onChange={(e) => handleDynamicChange(field.label, e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-800 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-800/30" />
                       ) : field.fieldType === 'select' ? (
-                        <select
-                          required={field.required}
-                          onChange={(e) => handleDynamicChange(field.label, e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200"
-                        >
+                        <select required={field.required} onChange={(e) => handleDynamicChange(field.label, e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-800 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-800/30">
                           <option value="">Select…</option>
-                          {field.options?.map((opt, i) => (
-                            <option key={i} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
+                          {field.options?.map((opt, i) => ( <option key={i} value={opt}> {opt} </option> ))}
                         </select>
                       ) : (
-                        <input
-                          type={field.fieldType}
-                          required={field.required}
-                          onChange={(e) => handleDynamicChange(field.label, e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-200"
-                        />
+                        <input type={field.fieldType} required={field.required} onChange={(e) => handleDynamicChange(field.label, e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-800 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-800/30" />
                       )}
                     </div>
                   ))}
 
                   <div className="col-span-full flex flex-col sm:flex-row sm:items-center justify-end gap-2 pt-2">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition disabled:opacity-50"
-                    >
-                      {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                      Save Participant
+                    <button type="submit" disabled={loading} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 dark:shadow-none transition disabled:opacity-50">
+                      {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Save Participant
                     </button>
                   </div>
                 </form>
@@ -438,11 +351,12 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
         </div>
 
         {/* BODY */}
-        <div className="flex-1 overflow-auto bg-slate-50">
+        <div className="flex-1 overflow-auto bg-slate-50 dark:bg-gray-900 transition-colors duration-300">
+          
           {/* MOBILE: CARDS */}
           <div className="sm:hidden p-3 space-y-3">
             {filteredParticipants.length === 0 ? (
-              <div className="p-10 text-center text-slate-400 italic">No participants found.</div>
+              <div className="p-10 text-center text-slate-400 dark:text-gray-500 italic">No participants found.</div>
             ) : (
               filteredParticipants.map((p, idx) => {
                 const obj = typeof p === 'object';
@@ -451,70 +365,40 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
                 const source = obj ? (p.referralSource || 'Legacy') : 'Legacy';
 
                 return (
-                  <div key={pid || idx} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div key={pid || idx} className="rounded-2xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-4 shadow-sm transition-colors duration-300">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-extrabold text-xs">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-extrabold text-xs">
                           {obj ? initials(p.fullName) : '?'}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-900 truncate">{obj ? p.fullName : 'Unknown'}</div>
+                          <div className="font-bold text-slate-900 dark:text-white truncate">{obj ? p.fullName : 'Unknown'}</div>
                           <div className="mt-1 inline-flex items-center gap-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-600">
                               {source}
                             </span>
                           </div>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() => obj && pid && handleRemove(pid)}
-                        disabled={deleting === pid || !obj}
-                        className="p-2 rounded-xl bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 disabled:opacity-50 transition"
-                      >
+                      <button onClick={() => obj && pid && handleRemove(pid)} disabled={deleting === pid || !obj} className="p-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 transition">
                         <Trash2 size={16} />
                       </button>
                     </div>
-
-                    <div className="mt-3 space-y-1 text-xs text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <Mail size={12} className="text-slate-400" />
-                        <span className="truncate">{obj ? p.email : p}</span>
-                      </div>
-                      {obj && p.phone ? (
-                        <div className="flex items-center gap-2">
-                          <Phone size={12} className="text-slate-400" />
-                          <span className="truncate">{p.phone}</span>
-                        </div>
-                      ) : null}
+                    <div className="mt-3 space-y-1 text-xs text-slate-700 dark:text-gray-300">
+                      <div className="flex items-center gap-2"><Mail size={12} className="text-slate-400 dark:text-gray-500" /><span className="truncate">{obj ? p.email : p}</span></div>
+                      {obj && p.phone ? (<div className="flex items-center gap-2"><Phone size={12} className="text-slate-400 dark:text-gray-500" /><span className="truncate">{p.phone}</span></div>) : null}
                     </div>
-
                     <div className="mt-3 flex flex-wrap gap-2">
                       {obj ? (
                         attrs.length ? (
                           attrs.slice(0, 6).map((a, i) => (
-                            <div
-                              key={i}
-                              className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-800"
-                            >
-                              <Tag size={10} className="text-emerald-600" />
-                              <span className="font-bold uppercase">{a.label}:</span>
-                              <span className="max-w-[120px] truncate">{String(a.value)}</span>
+                            <div key={i} className="inline-flex items-center gap-1 rounded-full border border-emerald-100 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 text-[11px] text-emerald-800 dark:text-emerald-300">
+                              <Tag size={10} className="text-emerald-600" /><span className="font-bold uppercase">{a.label}:</span><span className="max-w-[120px] truncate">{String(a.value)}</span>
                             </div>
                           ))
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">No extra data</span>
-                        )
-                      ) : (
-                        <span className="text-xs text-slate-400">Legacy record</span>
-                      )}
+                        ) : <span className="text-xs text-slate-400 italic">No extra data</span>
+                      ) : <span className="text-xs text-slate-400">Legacy record</span>}
                     </div>
-
-                    {obj && attrs.length > 6 ? (
-                      <div className="mt-2 text-[11px] font-semibold text-emerald-700">
-                        +{attrs.length - 6} more
-                      </div>
-                    ) : null}
                   </div>
                 );
               })
@@ -524,24 +408,17 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
           {/* DESKTOP/TABLET: TABLE */}
           <div className="hidden sm:block">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-white sticky top-0 z-10 border-b border-slate-200">
+              <thead className="bg-white dark:bg-gray-900 sticky top-0 z-10 border-b border-slate-200 dark:border-gray-800">
                 <tr>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Participant</th>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contact</th>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-[40%]">
-                    Attributes / Data
-                  </th>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Action</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider">Participant</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider">Contact</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider w-[40%]">Attributes / Data</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider text-right">Action</th>
                 </tr>
               </thead>
-
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-slate-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
                 {filteredParticipants.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="p-10 text-center text-slate-400 italic">
-                      No participants found.
-                    </td>
-                  </tr>
+                  <tr><td colSpan="4" className="p-10 text-center text-slate-400 dark:text-gray-500 italic">No participants found.</td></tr>
                 ) : (
                   filteredParticipants.map((p, idx) => {
                     const obj = typeof p === 'object';
@@ -550,68 +427,41 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
                     const source = obj ? (p.referralSource || 'Legacy') : 'Legacy';
 
                     return (
-                      <tr key={pid || idx} className="hover:bg-slate-50 transition-colors">
+                      <tr key={pid || idx} className="hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-extrabold text-xs uppercase">
+                            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-extrabold text-xs uppercase">
                               {obj ? initials(p.fullName) : '?'}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-slate-900 truncate">
-                                {obj ? p.fullName : 'Unknown'}
-                              </p>
-                              <span className="mt-1 inline-flex text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{obj ? p.fullName : 'Unknown'}</p>
+                              <span className="mt-1 inline-flex text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-600">
                                 {source}
                               </span>
                             </div>
                           </div>
                         </td>
-
                         <td className="p-4">
-                          <div className="space-y-1 text-xs text-slate-700">
-                            <div className="flex items-center gap-2">
-                              <Mail size={12} className="text-slate-400" />
-                              <span className="truncate">{obj ? p.email : p}</span>
-                            </div>
-                            {obj && p.phone ? (
-                              <div className="flex items-center gap-2">
-                                <Phone size={12} className="text-slate-400" />
-                                <span className="truncate">{p.phone}</span>
-                              </div>
-                            ) : null}
+                          <div className="space-y-1 text-xs text-slate-700 dark:text-gray-300">
+                            <div className="flex items-center gap-2"><Mail size={12} className="text-slate-400 dark:text-gray-500" /><span className="truncate">{obj ? p.email : p}</span></div>
+                            {obj && p.phone ? (<div className="flex items-center gap-2"><Phone size={12} className="text-slate-400 dark:text-gray-500" /><span className="truncate">{p.phone}</span></div>) : null}
                           </div>
                         </td>
-
                         <td className="p-4">
                           {obj ? (
                             <div className="flex flex-wrap gap-2">
                               {attrs.length ? (
                                 attrs.map((a, i) => (
-                                  <div
-                                    key={i}
-                                    className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-800"
-                                    title={`${a.label}: ${a.value}`}
-                                  >
-                                    <Tag size={10} className="text-emerald-600" />
-                                    <span className="font-bold uppercase">{a.label}:</span>
-                                    <span className="max-w-[160px] truncate">{String(a.value)}</span>
+                                  <div key={i} className="inline-flex items-center gap-1 rounded-full border border-emerald-100 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 text-[11px] text-emerald-800 dark:text-emerald-300" title={`${a.label}: ${a.value}`}>
+                                    <Tag size={10} className="text-emerald-600" /><span className="font-bold uppercase">{a.label}:</span><span className="max-w-[160px] truncate">{String(a.value)}</span>
                                   </div>
                                 ))
-                              ) : (
-                                <span className="text-xs text-slate-400 italic">No additional data</span>
-                              )}
+                              ) : <span className="text-xs text-slate-400 italic">No additional data</span>}
                             </div>
-                          ) : (
-                            <span className="text-xs text-slate-400">Legacy record</span>
-                          )}
+                          ) : <span className="text-xs text-slate-400">Legacy record</span>}
                         </td>
-
                         <td className="p-4 text-right">
-                          <button
-                            onClick={() => obj && pid && handleRemove(pid)}
-                            disabled={deleting === pid || !obj}
-                            className="inline-flex items-center justify-center p-2 rounded-xl bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 disabled:opacity-50 transition"
-                          >
+                          <button onClick={() => obj && pid && handleRemove(pid)} disabled={deleting === pid || !obj} className="inline-flex items-center justify-center p-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 transition">
                             {deleting === pid ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
                           </button>
                         </td>
@@ -625,7 +475,7 @@ const ManageParticipantsModal = ({ isOpen, onClose, program, onSuccess }) => {
         </div>
 
         {/* Footer hint */}
-        <div className="border-t border-slate-200 bg-white p-3 text-center text-[11px] text-slate-500">
+        <div className="border-t border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-center text-[11px] text-slate-500 dark:text-gray-500">
           Tip: Search matches name, email, phone, and custom form fields.
         </div>
       </div>

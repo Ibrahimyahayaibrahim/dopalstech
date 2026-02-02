@@ -79,12 +79,12 @@ const StaffIdCardModal = ({ user, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-white overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] bg-white dark:bg-gray-900 overflow-y-auto animate-in fade-in duration-200 transition-colors duration-300">
       {/* Top actions (close + print) */}
       <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[110] flex items-center gap-2">
         <button
           onClick={handlePrint}
-          className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur border border-slate-200 px-4 py-2 text-slate-700 hover:bg-white hover:text-slate-900 shadow-sm transition"
+          className="inline-flex items-center gap-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur border border-slate-200 dark:border-gray-700 px-4 py-2 text-slate-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-white shadow-sm transition"
         >
           <Printer size={18} />
           <span className="text-sm font-extrabold hidden sm:inline">Print ID</span>
@@ -92,7 +92,7 @@ const StaffIdCardModal = ({ user, onClose }) => {
 
         <button
           onClick={onClose}
-          className="inline-flex items-center justify-center rounded-full bg-white/80 backdrop-blur border border-slate-200 p-3 text-slate-700 hover:bg-white hover:text-slate-900 shadow-sm transition"
+          className="inline-flex items-center justify-center rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur border border-slate-200 dark:border-gray-700 p-3 text-slate-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-white shadow-sm transition"
           aria-label="Close"
         >
           <X size={22} />
@@ -100,7 +100,7 @@ const StaffIdCardModal = ({ user, onClose }) => {
       </div>
 
       <div className="min-h-screen flex flex-col">
-        {/* HERO */}
+        {/* HERO (Kept dark gradient as it's a specific design choice) */}
         <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-800 text-white">
           {/* Soft glow */}
           <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
@@ -166,17 +166,17 @@ const StaffIdCardModal = ({ user, onClose }) => {
         </div>
 
         {/* BODY */}
-        <div className="flex-1 bg-slate-50">
-          {/* ✅ Fix: safer overlap so header never hides photo */}
+        <div className="flex-1 bg-slate-50 dark:bg-gray-900 transition-colors duration-300">
+          {/* Safer overlap so header never hides photo */}
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 pb-16">
             {/* PRINT AREA START */}
             <div ref={printRef} className="no-break">
               {/* Profile + Summary */}
-              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-4 sm:p-6">
+              <div className="rounded-3xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-sm p-4 sm:p-6 transition-colors duration-300">
                 <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
                   {/* Profile */}
-                  <div className="bg-white p-2 rounded-[2rem] shadow-xl border border-slate-200 inline-block">
-                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-[1.6rem] overflow-hidden bg-emerald-100 flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-emerald-700 border border-slate-200">
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-[2rem] shadow-xl border border-slate-200 dark:border-gray-700 inline-block transition-colors">
+                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-[1.6rem] overflow-hidden bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-emerald-700 dark:text-emerald-400 border border-slate-200 dark:border-gray-700">
                       {user.profilePicture ? (
                         <img
                           src={getImageUrl(user.profilePicture)}
@@ -191,7 +191,7 @@ const StaffIdCardModal = ({ user, onClose }) => {
 
                   {/* Summary */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase font-extrabold tracking-[0.2em] text-slate-400">
+                    <p className="text-[10px] uppercase font-extrabold tracking-[0.2em] text-slate-400 dark:text-gray-500">
                       Quick Summary
                     </p>
 
@@ -209,7 +209,7 @@ const StaffIdCardModal = ({ user, onClose }) => {
                 <div className="lg:col-span-2 space-y-6">
                   <SectionCard
                     title="Personal Details"
-                    icon={<User size={18} className="text-emerald-600" />}
+                    icon={<User size={18} className="text-emerald-600 dark:text-emerald-400" />}
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                       <InfoItem label="Email Address" value={user.email} icon={<Mail size={16} />} />
@@ -225,7 +225,7 @@ const StaffIdCardModal = ({ user, onClose }) => {
 
                   <SectionCard
                     title="Security & Location"
-                    icon={<Shield size={18} className="text-emerald-600" />}
+                    icon={<Shield size={18} className="text-emerald-600 dark:text-emerald-400" />}
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                       <InfoItem label="NIN (National ID)" value={user.nin} icon={<FileText size={16} />} />
@@ -236,9 +236,9 @@ const StaffIdCardModal = ({ user, onClose }) => {
 
                 {/* Right */}
                 <div className="space-y-6">
-                  <div className="rounded-3xl border border-red-100 bg-red-50 p-5 sm:p-6">
-                    <h3 className="text-sm font-extrabold text-red-900 mb-4 flex items-center gap-2">
-                      <Heart size={18} className="text-red-600" />
+                  <div className="rounded-3xl border border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 p-5 sm:p-6 transition-colors">
+                    <h3 className="text-sm font-extrabold text-red-900 dark:text-red-400 mb-4 flex items-center gap-2">
+                      <Heart size={18} className="text-red-600 dark:text-red-500" />
                       Emergency Contact
                     </h3>
 
@@ -246,11 +246,11 @@ const StaffIdCardModal = ({ user, onClose }) => {
                       <InfoItem label="Name" value={user.emergencyContact?.name} />
                       <InfoItem label="Relationship" value={user.emergencyContact?.relationship} />
 
-                      <div className="pt-4 border-t border-red-200">
+                      <div className="pt-4 border-t border-red-200 dark:border-red-800">
                         <p className="text-[10px] font-extrabold text-red-400 uppercase tracking-[0.2em] mb-1">
                           Emergency Phone
                         </p>
-                        <p className="text-lg font-extrabold text-red-700 break-words">
+                        <p className="text-lg font-extrabold text-red-700 dark:text-red-400 break-words">
                           {user.emergencyContact?.phone || 'N/A'}
                         </p>
                       </div>
@@ -258,15 +258,15 @@ const StaffIdCardModal = ({ user, onClose }) => {
                   </div>
 
                   {(user.bio || user.linkedin) && (
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+                    <div className="rounded-3xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-5 sm:p-6 shadow-sm transition-colors">
                       {user.linkedin && (
                         <a
                           href={user.linkedin}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-3 font-extrabold text-emerald-700 hover:text-emerald-800 transition"
+                          className="inline-flex items-center gap-3 font-extrabold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition"
                         >
-                          <span className="p-2 rounded-full bg-emerald-50 border border-emerald-100">
+                          <span className="p-2 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800">
                             <Linkedin size={18} />
                           </span>
                           View LinkedIn Profile
@@ -275,10 +275,10 @@ const StaffIdCardModal = ({ user, onClose }) => {
 
                       {user.bio && (
                         <div className={`${user.linkedin ? 'mt-5' : ''}`}>
-                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em] mb-2">
+                          <p className="text-[10px] font-extrabold text-slate-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-2">
                             About
                           </p>
-                          <p className="text-sm text-slate-600 leading-relaxed italic break-words">
+                          <p className="text-sm text-slate-600 dark:text-gray-300 leading-relaxed italic break-words">
                             “{user.bio}”
                           </p>
                         </div>
@@ -287,7 +287,7 @@ const StaffIdCardModal = ({ user, onClose }) => {
                   )}
 
                   {user.createdAt ? (
-                    <div className="text-center text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400 opacity-70 flex items-center justify-center gap-2">
+                    <div className="text-center text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-600 opacity-70 flex items-center justify-center gap-2">
                       <Clock size={10} />
                       Joined {new Date(user.createdAt).toLocaleDateString()}
                     </div>
@@ -306,8 +306,8 @@ const StaffIdCardModal = ({ user, onClose }) => {
 /* ---------------- UI SUB COMPONENTS ---------------- */
 
 const SectionCard = ({ title, icon, children }) => (
-  <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-7 shadow-sm">
-    <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mb-5 flex items-center gap-2">
+  <div className="rounded-3xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-5 sm:p-7 shadow-sm transition-colors duration-300">
+    <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
       {icon}
       {title}
     </h3>
@@ -316,13 +316,13 @@ const SectionCard = ({ title, icon, children }) => (
 );
 
 const MiniPill = ({ icon, label, value }) => (
-  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 flex items-start gap-2 min-w-0">
-    <span className="mt-0.5 text-slate-400">{icon}</span>
+  <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-700/30 px-3 py-2 flex items-start gap-2 min-w-0 transition-colors">
+    <span className="mt-0.5 text-slate-400 dark:text-gray-500">{icon}</span>
     <div className="min-w-0">
-      <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
+      <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">
         {label}
       </div>
-      <div className="text-sm font-semibold text-slate-800 truncate">{value || '—'}</div>
+      <div className="text-sm font-semibold text-slate-800 dark:text-gray-200 truncate">{value || '—'}</div>
     </div>
   </div>
 );
@@ -330,13 +330,13 @@ const MiniPill = ({ icon, label, value }) => (
 const InfoItem = ({ label, value, icon }) => (
   <div className="min-w-0">
     <div className="flex items-center gap-2 mb-1">
-      {icon ? <span className="text-slate-400">{icon}</span> : null}
-      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">
+      {icon ? <span className="text-slate-400 dark:text-gray-500">{icon}</span> : null}
+      <span className="text-[10px] font-extrabold text-slate-400 dark:text-gray-500 uppercase tracking-[0.2em]">
         {label}
       </span>
     </div>
-    <p className="font-semibold text-slate-900 text-sm sm:text-base break-words leading-tight">
-      {value || <span className="text-slate-300 italic font-semibold">Not Provided</span>}
+    <p className="font-semibold text-slate-900 dark:text-gray-200 text-sm sm:text-base break-words leading-tight">
+      {value || <span className="text-slate-300 dark:text-gray-600 italic font-semibold">Not Provided</span>}
     </p>
   </div>
 );

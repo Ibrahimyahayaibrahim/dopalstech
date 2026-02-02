@@ -60,15 +60,14 @@ const SystemSettings = () => {
       }
   };
 
-  // --- 2. HANDLE AVATAR UPLOAD (FIXED) ---
+  // --- 2. HANDLE AVATAR UPLOAD ---
   const handleImageUpload = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       
       const formData = new FormData();
-      formData.append('profilePicture', file); // ✅ Must match upload.single('profilePicture')
+      formData.append('profilePicture', file); 
       try {
-          // ✅ FIX: Changed from API.post to API.put AND fixed the URL path
           const { data } = await API.put('/users/profile/image', formData, { 
               headers: { 'Content-Type': 'multipart/form-data'}
           });
@@ -80,9 +79,6 @@ const SystemSettings = () => {
           // Force visual update by updating hash
           setImageHash(Date.now());
           window.dispatchEvent(new Event('storage')); 
-          
-          // Optional: Success message
-          // alert("Avatar updated successfully!"); 
           
       } catch (err) {
           console.error(err);
@@ -115,12 +111,13 @@ const SystemSettings = () => {
     <div className="max-w-6xl mx-auto p-6 md:p-10 animate-enter pb-20">
       
       <div className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-800">System Settings</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage your account preferences and security.</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">System Settings</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your account preferences and security.</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
           
+          {/* Sidebar Tabs */}
           <div className="w-full lg:w-64 flex-shrink-0 space-y-2">
               <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User size={18}/>} label="My Profile" />
               <TabButton active={activeTab === 'security'} onClick={() => setActiveTab('security')} icon={<Lock size={18}/>} label="Security" />
@@ -131,15 +128,15 @@ const SystemSettings = () => {
 
           <div className="flex-1">
               
+              {/* PROFILE TAB */}
               {activeTab === 'profile' && (
-                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 animate-enter">
-                      <h3 className="text-xl font-bold text-gray-800 mb-6">Public Profile</h3>
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 animate-enter transition-colors">
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6">Public Profile</h3>
                       
                       <div className="flex items-center gap-6 mb-8">
                           <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
-                              <div className="w-24 h-24 rounded-full border-4 border-emerald-50 bg-emerald-100 flex items-center justify-center text-3xl font-bold text-emerald-600 overflow-hidden">
+                              <div className="w-24 h-24 rounded-full border-4 border-emerald-50 dark:border-emerald-900/30 bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-3xl font-bold text-emerald-600 dark:text-emerald-400 overflow-hidden">
                                   {user.profilePicture ? 
-                                    // Append imageHash to bust cache
                                     <img src={`${getProfileImage(user.profilePicture)}?t=${imageHash}`} className="w-full h-full object-cover" alt="Profile" /> 
                                     : user.name?.[0]
                                   }
@@ -150,7 +147,7 @@ const SystemSettings = () => {
                               <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" />
                           </div>
                           <div>
-                              <button onClick={() => fileInputRef.current.click()} className="text-sm font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors">Change Avatar</button>
+                              <button onClick={() => fileInputRef.current.click()} className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">Change Avatar</button>
                               <p className="text-xs text-gray-400 mt-2">JPG, GIF or PNG. Max size of 2MB</p>
                           </div>
                       </div>
@@ -159,38 +156,36 @@ const SystemSettings = () => {
                           <div className="grid grid-cols-2 gap-4">
                               <div>
                                   <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Full Name</label>
-                                  <input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-700 outline-none focus:border-emerald-500"
+                                  <input className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-medium text-gray-700 dark:text-white outline-none focus:border-emerald-500 transition-colors"
                                       value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} />
                               </div>
                               <div>
                                   <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Role</label>
-                                  <input disabled className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl font-bold text-gray-500 cursor-not-allowed"
+                                  <input disabled className="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl font-bold text-gray-500 dark:text-gray-400 cursor-not-allowed"
                                       value={user.role?.replace('_', ' ')} />
                               </div>
                           </div>
                           
-                          {/* EMAIL: Enabled */}
                           <div>
                               <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Email Address</label>
                               <input 
-                                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-700 outline-none focus:border-emerald-500"
+                                  className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-medium text-gray-700 dark:text-white outline-none focus:border-emerald-500 transition-colors"
                                   value={profileData.email} 
                                   onChange={e => setProfileData({...profileData, email: e.target.value})}
                               />
                           </div>
 
-                          {/* JOB TITLE: Disabled */}
                           <div>
                               <label className="text-xs font-bold text-gray-400 uppercase block mb-1">Job Title</label>
                               <input 
                                   disabled
-                                  className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl font-medium text-gray-500 cursor-not-allowed"
+                                  className="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl font-medium text-gray-500 dark:text-gray-400 cursor-not-allowed"
                                   value={profileData.position} 
                               />
                           </div>
 
                           <div className="pt-4">
-                              <button disabled={loading} className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2">
+                              <button disabled={loading} className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2 dark:shadow-none">
                                   {loading ? <Loader2 className="animate-spin"/> : <><Save size={18}/> Save Changes</>}
                               </button>
                           </div>
@@ -198,28 +193,29 @@ const SystemSettings = () => {
                   </div>
               )}
 
+              {/* SECURITY TAB */}
               {activeTab === 'security' && (
-                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 animate-enter">
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">Password & Security</h3>
-                      <p className="text-sm text-gray-500 mb-8">Manage your password to keep your account safe.</p>
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 animate-enter transition-colors">
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Password & Security</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Manage your password to keep your account safe.</p>
 
                       <form onSubmit={handlePasswordChange} className="max-w-lg space-y-5">
                           <div className="space-y-1">
                               <label className="text-xs font-bold text-gray-400 uppercase">Current Password</label>
                               <div className="relative">
                                   <Key size={18} className="absolute left-3 top-3 text-gray-400"/>
-                                  <input type="password" required className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"
+                                  <input type="password" required className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-emerald-500 text-gray-800 dark:text-white transition-colors"
                                       value={passData.currentPassword} onChange={e => setPassData({...passData, currentPassword: e.target.value})} />
                               </div>
                           </div>
                           
-                          <div className="h-px bg-gray-100 my-4"></div>
+                          <div className="h-px bg-gray-100 dark:bg-gray-700 my-4"></div>
 
                           <div className="space-y-1">
                               <label className="text-xs font-bold text-gray-400 uppercase">New Password</label>
                               <div className="relative">
                                   <Lock size={18} className="absolute left-3 top-3 text-gray-400"/>
-                                  <input type="password" required className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"
+                                  <input type="password" required className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-emerald-500 text-gray-800 dark:text-white transition-colors"
                                       value={passData.newPassword} onChange={e => setPassData({...passData, newPassword: e.target.value})} />
                               </div>
                           </div>
@@ -228,13 +224,13 @@ const SystemSettings = () => {
                               <label className="text-xs font-bold text-gray-400 uppercase">Confirm New Password</label>
                               <div className="relative">
                                   <Lock size={18} className="absolute left-3 top-3 text-gray-400"/>
-                                  <input type="password" required className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"
+                                  <input type="password" required className="w-full pl-10 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-emerald-500 text-gray-800 dark:text-white transition-colors"
                                       value={passData.confirmPassword} onChange={e => setPassData({...passData, confirmPassword: e.target.value})} />
                               </div>
                           </div>
 
                           <div className="pt-4">
-                              <button disabled={loading} className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2">
+                              <button disabled={loading} className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2 dark:shadow-none">
                                   {loading ? <Loader2 className="animate-spin"/> : 'Update Password'}
                               </button>
                           </div>
@@ -242,13 +238,14 @@ const SystemSettings = () => {
                   </div>
               )}
 
+              {/* LOGS TAB */}
               {activeTab === 'logs' && user.role === 'SUPER_ADMIN' && (
-                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 animate-enter">
-                      <h3 className="text-xl font-bold text-gray-800 mb-6">System Audit Logs</h3>
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 animate-enter transition-colors">
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6">System Audit Logs</h3>
                       
-                      <div className="border border-gray-100 rounded-2xl overflow-hidden">
+                      <div className="border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden">
                           <table className="w-full text-left text-sm">
-                              <thead className="bg-gray-50 text-gray-400 font-bold uppercase text-xs">
+                              <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-400 font-bold uppercase text-xs">
                                   <tr>
                                       <th className="p-4">Action</th>
                                       <th className="p-4">User</th>
@@ -256,7 +253,7 @@ const SystemSettings = () => {
                                       <th className="p-4 text-right">Status</th>
                                   </tr>
                               </thead>
-                              <tbody className="divide-y divide-gray-50">
+                              <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                                   <LogItem action="System Login" user={user.name} date="Just now" status="Success" />
                                   <LogItem action="Broadcast Sent" user={user.name} date="2 mins ago" status="Success" />
                                   <LogItem action="Profile Update" user={user.name} date="1 hour ago" status="Success" />
@@ -274,19 +271,19 @@ const SystemSettings = () => {
 const TabButton = ({ active, onClick, icon, label }) => (
     <button 
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-6 py-4 rounded-2xl transition-all font-bold text-sm text-left ${active ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white text-gray-500 hover:bg-gray-50 border border-transparent hover:border-gray-100'}`}
+        className={`w-full flex items-center gap-3 px-6 py-4 rounded-2xl transition-all font-bold text-sm text-left ${active ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200/50 dark:shadow-none' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent hover:border-gray-100 dark:hover:border-gray-600'}`}
     >
         {icon} {label}
     </button>
 );
 
 const LogItem = ({ action, user, date, status }) => (
-    <tr className="hover:bg-gray-50/50">
-        <td className="p-4 font-bold text-gray-700">{action}</td>
-        <td className="p-4 text-gray-500">{user}</td>
-        <td className="p-4 text-gray-400">{date}</td>
+    <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+        <td className="p-4 font-bold text-gray-700 dark:text-white">{action}</td>
+        <td className="p-4 text-gray-500 dark:text-gray-400">{user}</td>
+        <td className="p-4 text-gray-400 dark:text-gray-500">{date}</td>
         <td className="p-4 text-right">
-            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${status === 'Success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${status === 'Success' ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'}`}>
                 {status}
             </span>
         </td>

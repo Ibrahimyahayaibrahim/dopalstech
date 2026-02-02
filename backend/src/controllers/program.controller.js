@@ -1,7 +1,7 @@
 import Program from '../models/Program.js';
 import Participant from '../models/Participant.js'; 
+import Department from '../models/Department.js'; // ✅ 1. Import Department
 import { customAlphabet } from 'nanoid';
-// import { logActivity } from "../utils/activityLogger.js"; // Uncomment if you have this utility
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 10);
 
@@ -11,83 +11,75 @@ const createSlug = (name, suffix = '') => {
   return `${cleanName}${cleanSuffix}-${nanoid()}`; 
 };
 
-// --- 1. CREATE PROGRAM (With Cloudinary & Version Logic) ---
+// --- 1. CREATE PROGRAM ---
 export const createProgram = async (req, res) => {
   try {
-    const { 
-      name, type, date, description, cost, departmentId, 
-      frequency, courseTitle, venue, 
-      startupsCount, participantsCount,
-      structure, parentId, customSuffix, formFields 
+    const {
+      name,
+      description,
+      department, // Matches 'department' field sent from frontend
+      date,
+      status,
+      actualAttendance,
+      completionComment,
+      type,
+      structure,
+      cost,
+      venue
     } = req.body;
 
-    // ✅ Handle Cloudinary Files
-    const flyer = req.files?.flyer?.[0]?.path || ''; 
-    const proposal = req.files?.proposal?.[0]?.path || '';
+    // 1. Determine Status
+    const isArchive = status === 'Completed';
+    const initialStatus = isArchive 
+        ? 'Completed' 
+        : (req.user.role === 'SUPER_ADMIN' ? 'Approved' : 'Pending');
 
-    if (!req.user) return res.status(401).json({ message: "Not Authorized" });
-
-    // ✅ Parse Form Fields
-    let parsedFormFields = [];
-    if (typeof formFields === 'string') {
-        try { parsedFormFields = JSON.parse(formFields); } catch (e) { parsedFormFields = []; }
-    } else { parsedFormFields = formFields || []; }
-
-    // ✅ Build Data Object
-    let programData = {
-      name, type, structure: structure || 'One-Time', 
-      description, cost, frequency, department: departmentId, createdBy: req.user._id,
-      flyer, proposal, courseTitle, venue, startupsCount, participantsCount,
-      status: req.user.role === 'SUPER_ADMIN' ? 'Approved' : 'Pending',
-      registration: { isOpen: true, formFields: parsedFormFields }
-    };
-
-    // --- Logic for Blueprints vs Instances ---
-    if (!parentId && (structure === 'Recurring' || structure === 'Numerical')) {
-        programData.date = null;
-        programData.registration.linkSlug = null; 
-    } 
-    else if (!parentId && structure === 'One-Time') {
-        programData.date = date ? new Date(date) : new Date();
-        programData.registration.linkSlug = createSlug(name);
-    }
-    else if (parentId) {
-      const parent = await Program.findById(parentId);
-      if (!parent) return res.status(404).json({ message: "Parent program not found" });
+    // 2. Create the Program
+    const program = await Program.create({
+      name,
+      description,
+      department,
+      date,
+      type: type || 'Training',
+      structure: structure || 'One-Time',
+      venue: venue || (isArchive ? 'Archived' : 'TBD'),
+      cost: cost || 0,
       
-      programData.parentProgram = parent._id;
-      programData.structure = parent.structure;
-      programData.date = date ? new Date(date) : new Date();
-      if (!venue) programData.venue = parent.venue;
-      if (!cost) programData.cost = parent.cost;
+      status: initialStatus,
+      actualAttendance: isArchive ? Number(actualAttendance || 0) : 0,
+      
+      // Add Archive Note to Updates
+      updates: isArchive && completionComment ? [{
+          text: `[ARCHIVE NOTE]: ${completionComment}`,
+          user: req.user._id,
+          date: new Date()
+      }] : [],
 
-      if (parent.structure === 'Numerical') {
-        const lastChild = await Program.findOne({ parentProgram: parent._id }).sort({ batchNumber: -1 });
-        const nextBatch = (lastChild?.batchNumber || 0) + 1;
-        programData.batchNumber = nextBatch;
-        const suffix = customSuffix || `Batch ${nextBatch}`;
-        programData.name = `${parent.name} - ${suffix}`;
-        programData.customSuffix = suffix;
-        programData.registration.linkSlug = createSlug(parent.name, suffix);
-      } else {
-        const suffix = customSuffix || new Date(programData.date).toLocaleDateString();
-        programData.versionLabel = suffix;
-        programData.name = `${parent.name} - ${suffix}`;
-        programData.customSuffix = suffix;
-        programData.registration.linkSlug = createSlug(parent.name, suffix);
-      }
+      registration: {
+        isOpen: !isArchive,
+        // Only generate slug if NOT archived
+        linkSlug: !isArchive ? `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString().slice(-4)}` : undefined
+      },
+      
+      // Handle Files
+      finalDocument: req.files?.finalDocument?.[0]?.path || null,
+      flyer: req.files?.flyer?.[0]?.path || null,
+      proposal: req.files?.proposal?.[0]?.path || null,
+      
+      createdBy: req.user._id
+    });
+
+    // ✅ 3. CRITICAL FIX: Link Program to Department
+    if (department) {
+        await Department.findByIdAndUpdate(department, {
+            $push: { programs: program._id }
+        });
     }
 
-    const program = new Program(programData);
-    const createdProgram = await program.save(); 
-
-    // await logActivity(req.user._id, "CREATE_PROGRAM", `Created: ${program.name}`, program.department);
-
-    res.status(201).json(createdProgram);
-
+    res.status(201).json(program);
   } catch (error) {
-    console.error("Create Program Error:", error);
-    res.status(400).json({ message: error.message });
+    console.error('Create Program Error:', error);
+    res.status(500).json({ message: 'Failed to create program' });
   }
 };
 
@@ -181,8 +173,6 @@ export const updateProgramStatus = async (req, res) => {
             { new: true }
         ).populate('createdBy', 'email name');
         
-        // if (program) { await logActivity(req.user._id, "UPDATE_STATUS", `Changed status to ${status}`, program.department); }
-        
         res.json(program);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -195,7 +185,6 @@ export const markProgramComplete = async (req, res) => {
         const { id } = req.params;
         const { actualAttendance, startDate, endDate, driveLink, completionComment } = req.body;
         
-        // Handle Cloudinary file for final report
         const finalDocument = req.file ? req.file.path : null;
 
         const program = await Program.findById(id);
@@ -274,7 +263,6 @@ export const addParticipantManually = async (req, res) => {
         if (participant) {
             if (!participant.programs.includes(id)) {
                 participant.programs.push(id);
-                // Update basic fields if provided
                 if (fullName) participant.fullName = fullName;
                 await participant.save();
             }

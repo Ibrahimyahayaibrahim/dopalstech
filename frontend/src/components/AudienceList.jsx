@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Filter, Trash2, FileText, User } from 'lucide-react';
+import { Search, Filter, Trash2, User } from 'lucide-react';
 
 const AudienceList = ({ contacts, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,11 +22,11 @@ const AudienceList = ({ contacts, onDelete }) => {
   if (contacts.length === 0) return null;
 
   return (
-    <div className="mt-6 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm animate-enter">
+    <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm animate-enter transition-colors duration-300">
       
       {/* HEADER: Search & Filter */}
-      <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row gap-4 justify-between items-center">
-        <div className="flex items-center gap-2 text-gray-500">
+      <div className="p-4 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-4 justify-between items-center">
+        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
             <User size={18}/>
             <span className="font-bold text-sm">{filteredContacts.length} Recipients Selected</span>
         </div>
@@ -38,7 +38,7 @@ const AudienceList = ({ contacts, onDelete }) => {
                 <input 
                     type="text" 
                     placeholder="Search name or email..." 
-                    className="w-full pl-9 pr-3 py-2 text-xs font-medium border border-gray-200 rounded-lg outline-none focus:border-emerald-500"
+                    className="w-full pl-9 pr-3 py-2 text-xs font-medium border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 outline-none focus:border-emerald-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -47,7 +47,7 @@ const AudienceList = ({ contacts, onDelete }) => {
             {/* Filter */}
             <div className="relative">
                 <select 
-                    className="appearance-none pl-3 pr-8 py-2 text-xs font-bold border border-gray-200 rounded-lg bg-white outline-none focus:border-emerald-500 cursor-pointer"
+                    className="appearance-none pl-3 pr-8 py-2 text-xs font-bold border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 outline-none focus:border-emerald-500 cursor-pointer"
                     value={filterProgram}
                     onChange={(e) => setFilterProgram(e.target.value)}
                 >
@@ -59,9 +59,9 @@ const AudienceList = ({ contacts, onDelete }) => {
       </div>
 
       {/* TABLE */}
-      <div className="max-h-64 overflow-y-auto">
+      <div className="max-h-64 overflow-y-auto custom-scrollbar">
         <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50 text-gray-400 font-bold uppercase sticky top-0">
+            <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 font-bold uppercase sticky top-0 backdrop-blur-sm">
                 <tr>
                     <th className="p-3">Name</th>
                     <th className="p-3">Email</th>
@@ -69,20 +69,20 @@ const AudienceList = ({ contacts, onDelete }) => {
                     <th className="p-3 text-right">Action</th>
                 </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filteredContacts.map((contact, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                        <td className="p-3 font-medium text-gray-700">{contact.name || 'N/A'}</td>
-                        <td className="p-3 text-gray-500">{contact.email}</td>
+                    <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                        <td className="p-3 font-medium text-gray-700 dark:text-gray-200">{contact.name || 'N/A'}</td>
+                        <td className="p-3 text-gray-500 dark:text-gray-400">{contact.email}</td>
                         <td className="p-3">
-                            <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold border border-blue-100">
+                            <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded text-[10px] font-bold border border-blue-100 dark:border-blue-800">
                                 {contact.program || 'Manual Entry'}
                             </span>
                         </td>
                         <td className="p-3 text-right">
                             <button 
                                 onClick={() => onDelete(idx)}
-                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                             >
                                 <Trash2 size={14}/>
                             </button>
@@ -93,7 +93,7 @@ const AudienceList = ({ contacts, onDelete }) => {
         </table>
         
         {filteredContacts.length === 0 && (
-            <div className="p-8 text-center text-gray-400">
+            <div className="p-8 text-center text-gray-400 dark:text-gray-500">
                 <p>No contacts found matching your search.</p>
             </div>
         )}

@@ -1,50 +1,54 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../services/api'; // Adjust path if needed
+import API from '../services/api'; 
 import { Lock, CheckCircle, Loader2 } from 'lucide-react';
+import { useUI } from '../context/UIContext'; // ✅ Import Context
 
 const ChangePassword = () => {
   const navigate = useNavigate();
+  const { showToast } = useUI(); // ✅ Hook
   const [passwords, setPasswords] = useState({ newPassword: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (passwords.newPassword !== passwords.confirmPassword) {
-      return alert("Passwords do not match!");
+      // ✅ Replaced Alert
+      showToast("Passwords do not match!", "error");
+      return;
     }
     if (passwords.newPassword.length < 6) {
-      return alert("Password must be at least 6 characters.");
+      // ✅ Replaced Alert
+      showToast("Password must be at least 6 characters.", "warning");
+      return;
     }
 
     setLoading(true);
     try {
-      // 1. Send Update to Backend
       const { data } = await API.put('/users/profile', {
         password: passwords.newPassword,
         status: 'Onboarding'
       });
 
-      // 2. ✅ FORCE LOCAL UPDATE (The Fix)
-      // Even if backend sends back 'Pending', we overwrite it here locally
-      // so the router lets us pass to the next screen.
       const updatedUser = { ...data, status: 'Onboarding' };
-      
-      // 3. Save to Storage
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
-      // 4. Redirect to Profile Completion
+      // ✅ Success Toast
+      showToast("Password updated successfully!", "success");
+
       navigate('/complete-profile');
       
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to update password");
+      // ✅ Error Toast
+      showToast(err.response?.data?.message || "Failed to update password", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    // ... (Keep existing JSX) ...
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white max-w-md w-full p-8 rounded-3xl shadow-xl border border-gray-100">
         <div className="text-center mb-8">

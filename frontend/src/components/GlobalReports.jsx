@@ -81,46 +81,46 @@ const GlobalReports = () => {
       {/* HEADER */}
       <div className="flex justify-between items-end print:hidden">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <BarChart3 className="text-emerald-600"/> {isStaff ? "Performance Reports" : "System Intelligence"}
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <BarChart3 className="text-emerald-600 dark:text-emerald-400"/> {isStaff ? "Performance Reports" : "System Intelligence"}
             </h2>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
                 {isStaff ? "Your departmental breakdown & impact." : "Real-time system activity & audit logs."}
             </p>
           </div>
-          <button onClick={handlePrint} className="flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors shadow-sm">
+          <button onClick={handlePrint} className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
               <Download size={16}/> Export PDF
           </button>
       </div>
 
       {/* NAVIGATION TABS */}
-      <div className="flex gap-2 border-b border-gray-100 overflow-x-auto print:hidden">
+      <div className="flex gap-2 border-b border-gray-100 dark:border-gray-800 overflow-x-auto print:hidden">
         <TabButton id="programs" label="Programs" icon={<Layers size={16}/>} active={activeTab} onClick={setActiveTab}/>
-            <TabButton id="departments" label="Departments" icon={<Briefcase size={16}/>} active={activeTab} onClick={setActiveTab}/>
-           <TabButton id="impact" label="Impact" icon={<Users size={16}/>} active={activeTab} onClick={setActiveTab}/>
-         <TabButton id="overview" label={isStaff ? "Overview" : "Activity Feed"} icon={<Activity size={16}/>} active={activeTab} onClick={setActiveTab}/>
+        <TabButton id="departments" label="Departments" icon={<Briefcase size={16}/>} active={activeTab} onClick={setActiveTab}/>
+        <TabButton id="impact" label="Impact" icon={<Users size={16}/>} active={activeTab} onClick={setActiveTab}/>
+        <TabButton id="overview" label={isStaff ? "Overview" : "Activity Feed"} icon={<Activity size={16}/>} active={activeTab} onClick={setActiveTab}/>
       </div>
     
     {/* --- VIEW 3: PROGRAMS BREAKDOWN --- */}
       {(activeTab === 'programs' || activeTab === 'pending') && (
           <div className="space-y-6 animate-enter">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <StatusCard label="Total Created" value={stats?.overview?.totalPrograms} color="bg-gray-100 text-gray-600"/>
-                  <StatusCard label="Active / Ongoing" value={stats?.overview?.activePrograms} color="bg-emerald-100 text-emerald-700"/>
-                  <StatusCard label="Completed" value={stats?.overview?.completedPrograms} color="bg-blue-100 text-blue-700"/>
-                  <StatusCard label="Pending Approval" value={stats?.overview?.pendingApprovals} color="bg-amber-100 text-amber-700"/>
+                  <StatusCard label="Total Created" value={stats?.overview?.totalPrograms} color="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"/>
+                  <StatusCard label="Active / Ongoing" value={stats?.overview?.activePrograms} color="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"/>
+                  <StatusCard label="Completed" value={stats?.overview?.completedPrograms} color="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"/>
+                  <StatusCard label="Pending Approval" value={stats?.overview?.pendingApprovals} color="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"/>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                  <h3 className="font-bold text-gray-800 mb-6">Programs by Type</h3>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+                  <h3 className="font-bold text-gray-800 dark:text-white mb-6">Programs by Type</h3>
                   <div className="space-y-4">
                       {stats?.breakdowns?.types?.map((type, idx) => (
                           <div key={idx} className="flex items-center gap-4">
-                              <span className="w-32 text-sm font-bold text-gray-500">{type.name || 'Unspecified'}</span>
-                              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                              <span className="w-32 text-sm font-bold text-gray-500 dark:text-gray-400">{type.name || 'Unspecified'}</span>
+                              <div className="flex-1 h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                                   <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(type.value / stats.overview.totalPrograms) * 100}%` }}></div>
                               </div>
-                              <span className="w-10 text-right font-bold text-gray-700">{type.value}</span>
+                              <span className="w-10 text-right font-bold text-gray-700 dark:text-gray-200">{type.value}</span>
                           </div>
                       ))}
                   </div>
@@ -133,24 +133,24 @@ const GlobalReports = () => {
           <div className="animate-enter">
               {!isStaff ? (
                   // ✅ ADMIN VIEW: ACTIVITY FEED
-                  <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-                      <div className="p-8 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                  <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                      <div className="p-8 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-center">
                           <div>
-                            <h3 className="text-lg font-bold text-gray-800">Live System Activity</h3>
-                            <p className="text-gray-500 text-xs mt-1">Real-time audit log of all actions within your jurisdiction.</p>
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Live System Activity</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Real-time audit log of all actions within your jurisdiction.</p>
                           </div>
-                          <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                          <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
                               Live
                           </div>
                       </div>
                       <div className="p-8">
                         {activities.length > 0 ? (
-                            <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                            <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-gray-700 before:to-transparent">
                                 {activities.map((log) => (
                                     <div key={log._id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                                         
                                         {/* Icon Dot */}
-                                        <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                                        <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-gray-800 bg-slate-100 dark:bg-gray-700 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
                                             {log.action.includes('LOGIN') ? <User size={16} className="text-blue-500"/> :
                                              log.action.includes('CREATE') ? <Layers size={16} className="text-emerald-500"/> :
                                              log.action.includes('COMPLETE') ? <CheckCircle size={16} className="text-purple-500"/> :
@@ -158,23 +158,23 @@ const GlobalReports = () => {
                                         </div>
                                         
                                         {/* Content Card */}
-                                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
                                             <div className="flex items-center justify-between space-x-2 mb-2">
-                                                <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                                                <div className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                                                     {log.user?.profilePicture && (
-                                                        <img src={getProfileImage(log.user.profilePicture)} className="w-6 h-6 rounded-full object-cover border border-gray-100" alt=""/>
+                                                        <img src={getProfileImage(log.user.profilePicture)} className="w-6 h-6 rounded-full object-cover border border-gray-100 dark:border-gray-700" alt=""/>
                                                     )}
                                                     {log.user?.name || 'Unknown User'}
                                                 </div>
-                                                <time className="font-mono text-[10px] text-gray-400 font-bold">{new Date(log.createdAt).toLocaleString()}</time>
+                                                <time className="font-mono text-[10px] text-gray-400 dark:text-gray-500 font-bold">{new Date(log.createdAt).toLocaleString()}</time>
                                             </div>
-                                            <div className="text-gray-600 text-sm mb-2">{log.description}</div>
+                                            <div className="text-gray-600 dark:text-gray-300 text-sm mb-2">{log.description}</div>
                                             <div className="flex flex-wrap gap-2">
-                                                <span className="bg-gray-50 text-gray-500 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-gray-100">
+                                                <span className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-gray-100 dark:border-gray-700">
                                                     {log.action.replace(/_/g, ' ')}
                                                 </span>
                                                 {log.department && (
-                                                    <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+                                                    <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-blue-100 dark:border-blue-800">
                                                         {log.department.name}
                                                     </span>
                                                 )}
@@ -184,7 +184,7 @@ const GlobalReports = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-20 text-gray-400">
+                            <div className="text-center py-20 text-gray-400 dark:text-gray-500">
                                 <Activity size={48} className="mx-auto mb-4 opacity-20"/>
                                 <p>No activity recorded yet.</p>
                             </div>
@@ -195,9 +195,9 @@ const GlobalReports = () => {
                   // ✅ STAFF VIEW: STATS OVERVIEW
                   <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <ReportCard label="My Department" value={user?.departments?.[0]?.name || 'General'} icon={<Building2 size={24}/>} color="text-blue-600" bg="bg-blue-50"/>
-                          <ReportCard label="Total Programs" value={deptStats.find(d => user.departments?.some(ud => (ud._id||ud) === d._id))?.programCount || 0} icon={<Briefcase size={24}/>} color="text-purple-600" bg="bg-purple-50"/>
-                          <ReportCard label="Active Now" value={deptStats.find(d => user.departments?.some(ud => (ud._id||ud) === d._id))?.activePrograms || 0} icon={<Activity size={24}/>} color="text-emerald-600" bg="bg-emerald-50"/>
+                          <ReportCard label="My Department" value={user?.departments?.[0]?.name || 'General'} icon={<Building2 size={24}/>} color="text-blue-600 dark:text-blue-400" bg="bg-blue-50 dark:bg-blue-900/30"/>
+                          <ReportCard label="Total Programs" value={deptStats.find(d => user.departments?.some(ud => (ud._id||ud) === d._id))?.programCount || 0} icon={<Briefcase size={24}/>} color="text-purple-600 dark:text-purple-400" bg="bg-purple-50 dark:bg-purple-900/30"/>
+                          <ReportCard label="Active Now" value={deptStats.find(d => user.departments?.some(ud => (ud._id||ud) === d._id))?.activePrograms || 0} icon={<Activity size={24}/>} color="text-emerald-600 dark:text-emerald-400" bg="bg-emerald-50 dark:bg-emerald-900/30"/>
                       </div>
                       <DepartmentTable deptStats={deptStats} />
                   </div>
@@ -212,12 +212,9 @@ const GlobalReports = () => {
           </div>
       )}
 
-      
-
-      {/* --- VIEW 4: IMPACT ANALYSIS (UPDATED WITH GRAPH) --- */}
+      {/* --- VIEW 4: IMPACT ANALYSIS --- */}
       {activeTab === 'impact' && (
-          <div className="animate-enter h-[600px] w-full">
-              {/* This renders your new complex chart in full size */}
+          <div className="animate-enter h-[600px] w-full bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
               <ImpactChart />
           </div>
       )}
@@ -230,19 +227,19 @@ const GlobalReports = () => {
 const TabButton = ({ id, label, icon, active, onClick }) => (
     <button 
         onClick={() => onClick(id)}
-        className={`flex items-center gap-2 px-6 py-4 font-bold text-sm border-b-2 transition-colors whitespace-nowrap ${active === id ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+        className={`flex items-center gap-2 px-6 py-4 font-bold text-sm border-b-2 transition-colors whitespace-nowrap ${active === id ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
     >
         {icon} {label}
     </button>
 );
 
 const ReportCard = ({ label, value, sub, icon, color, bg }) => (
-    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden transition-colors duration-300">
         <div className={`absolute top-0 right-0 p-4 ${color} opacity-10`}>{icon}</div>
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bg} ${color} mb-4`}>{icon}</div>
-        <h3 className="text-3xl font-extrabold text-gray-800 tracking-tight">{value}</h3>
-        <p className="text-sm font-bold text-gray-500 mt-1">{label}</p>
-        {sub && <p className="text-xs text-gray-400 mt-1 font-medium">{sub}</p>}
+        <h3 className="text-3xl font-extrabold text-gray-800 dark:text-white tracking-tight">{value}</h3>
+        <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mt-1">{label}</p>
+        {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-medium">{sub}</p>}
     </div>
 );
 
@@ -254,11 +251,11 @@ const StatusCard = ({ label, value, color }) => (
 );
 
 const DepartmentTable = ({ deptStats }) => (
-    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-        <h3 className="font-bold text-gray-800 mb-6">Department Breakdown</h3>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+        <h3 className="font-bold text-gray-800 dark:text-white mb-6">Department Breakdown</h3>
         <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 text-gray-400 font-bold uppercase text-[10px]">
+                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 font-bold uppercase text-[10px]">
                     <tr>
                         <th className="p-4 rounded-l-xl">Department Name</th>
                         <th className="p-4">Staff Count</th>
@@ -267,14 +264,14 @@ const DepartmentTable = ({ deptStats }) => (
                         <th className="p-4 rounded-r-xl text-right">Total Impact</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                     {deptStats.map((dept, idx) => (
-                        <tr key={idx} className="group hover:bg-gray-50/50">
-                            <td className="p-4 font-bold text-gray-700">{dept.name}</td>
-                            <td className="p-4 text-gray-500">{dept.staffCount} Staff</td>
-                            <td className="p-4 text-gray-500">{dept.programCount}</td>
-                            <td className="p-4 text-emerald-600 font-bold">{dept.activePrograms}</td>
-                            <td className="p-4 text-right font-bold text-gray-700">{dept.impact?.toLocaleString()}</td>
+                        <tr key={idx} className="group hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                            <td className="p-4 font-bold text-gray-700 dark:text-gray-200">{dept.name}</td>
+                            <td className="p-4 text-gray-500 dark:text-gray-400">{dept.staffCount} Staff</td>
+                            <td className="p-4 text-gray-500 dark:text-gray-400">{dept.programCount}</td>
+                            <td className="p-4 text-emerald-600 dark:text-emerald-400 font-bold">{dept.activePrograms}</td>
+                            <td className="p-4 text-right font-bold text-gray-700 dark:text-gray-200">{dept.impact?.toLocaleString()}</td>
                         </tr>
                     ))}
                 </tbody>

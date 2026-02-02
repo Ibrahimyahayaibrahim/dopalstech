@@ -1,6 +1,6 @@
 import User from '../models/user.model.js';
 import Department from '../models/Department.js'; 
-import sendEmail from '../utils/sendEmail.js'; 
+import { sendEmail } from '../services/brevoService.js'; // ✅ Use Brevo Service
 
 // --- 1. INVITE / CREATE USER ---
 export const inviteUser = async (req, res) => {
@@ -45,8 +45,8 @@ export const inviteUser = async (req, res) => {
     });
 
     if (user) {
-      const message = `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
+      const messageHtml = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
           <h2 style="color: #059669;">Welcome to Dopals Tech Dashboard</h2>
           <p>Hello <strong>${user.name}</strong>,</p>
           <p>You have been added to the system as a <strong>${position}</strong>.</p>
@@ -55,7 +55,7 @@ export const inviteUser = async (req, res) => {
             <p style="margin: 10px 0 0;"><strong>Temporary Password:</strong> ${finalPassword}</p>
           </div>
           <p>Please login and change your password immediately.</p>
-          <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/login" style="background-color: #059669; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Login Now</a>
+          <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/login" style="background-color: #059669; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Login Now</a>
         </div>
       `;
 
@@ -63,8 +63,8 @@ export const inviteUser = async (req, res) => {
         await sendEmail({
           email: user.email,
           subject: 'Your Account Credentials - Dopals Tech',
-          html: message, 
-          message: `Your password is: ${finalPassword}`
+          html: messageHtml, 
+          text: `Your password is: ${finalPassword}` // Plain text fallback
         });
 
         res.status(201).json({
@@ -165,10 +165,9 @@ export const updateUserProfile = async (req, res) => {
             if (req.body.linkedin) user.linkedin = req.body.linkedin;
 
             // ✅ CRITICAL FIX: Explicitly save status changes
-            // This flag comes from your Frontend Modal
             if (req.body.isProfileComplete === true) {
                 user.isProfileComplete = true;
-                user.status = 'Active'; // <--- THIS WAS MISSING. Activates the user.
+                user.status = 'Active'; 
             }
 
             // Update Emergency Contact
@@ -180,7 +179,7 @@ export const updateUserProfile = async (req, res) => {
                 };
             }
 
-            // ✅ Handle Password Change (Merged)
+            // ✅ Handle Password Change
             if (req.body.password && req.body.password.length >= 6) {
                 user.password = req.body.password;
             }
@@ -196,7 +195,6 @@ export const updateUserProfile = async (req, res) => {
                 position: updatedUser.position,
                 profilePicture: updatedUser.profilePicture,
                 
-                // Return updated status to frontend
                 isProfileComplete: updatedUser.isProfileComplete, 
                 status: updatedUser.status,
                 
@@ -218,8 +216,6 @@ export const updateUserProfile = async (req, res) => {
 // --- 5. UPDATE PROFILE IMAGE (CLOUDINARY) ---
 export const updateProfileImage = async (req, res) => {
     try {
-        // Cloudinary handles the upload before this function runs.
-        // If successful, 'req.file' will contain the Cloudinary URL in 'req.file.path'
         if (!req.file) {
             return res.status(400).json({ message: "No image file provided" });
         }
@@ -227,7 +223,6 @@ export const updateProfileImage = async (req, res) => {
         const user = await User.findById(req.user._id);
         
         if (user) {
-            // Save the remote Cloudinary URL (starts with https://res.cloudinary.com/...)
             user.profilePicture = req.file.path; 
             await user.save();
 
