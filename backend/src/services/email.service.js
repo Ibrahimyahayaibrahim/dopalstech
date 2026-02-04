@@ -1,39 +1,33 @@
-import nodemailer from 'nodemailer';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { Resend } from 'resend';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+export const sendEmail = async ({ email, subject, html }) => {
+  // 1. Check for the key BEFORE trying to use it
+  if (!process.env.RESEND_API_KEY) {
+    console.error('❌ CRITICAL ERROR: RESEND_API_KEY is missing in backend/.env');
+    throw new Error('Server configuration error: Missing Email API Key');
+  }
 
-// 1. Create Transporter ONCE (Singleton pattern)
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS // App Password, not Login Password
-    }
-});
+  // 2. Initialize Resend here (safer)
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Verify connection on startup
-transporter.verify((error, success) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      // Use this specific sender for testing
+      from: 'Dopals Test <onboarding@resend.dev>',
+      to: [email], // MUST be your personal sign-up email for now
+      subject: subject,
+      html: html,
+    });
+
     if (error) {
-        console.error("❌ Email Service Error:", error.message);
-    } else {
-        console.log("✅ Email Service Ready");
+      console.error('❌ Resend Error:', error.message);
+      throw new Error(error.message);
     }
-});
 
-// 2. Reusable Send Function (SAFE VERSION - NO LOGO)
-export const sendHtmlEmail = async ({ to, bcc, subject, html }) => {
-    
-    const mailOptions = {
-        from: `"DOPALS TECHNOLOGIES" <${process.env.EMAIL_USER}>`,
-        to: to || process.env.EMAIL_USER,
-        bcc: bcc, 
-        subject: subject,
-        html: html
-        // attachments: removed to prevent crash
-    };
-
-    return await transporter.sendMail(mailOptions);
+    console.log('✅ Test Email Sent successfully:', data.id);
+    return data;
+  } catch (err) {
+    console.error('❌ Email dispatch failed:', err.message);
+    throw err;
+  }
 };

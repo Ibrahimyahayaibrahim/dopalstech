@@ -13,14 +13,18 @@ import {
   Clock,
   Building2,
   Printer,
+  QrCode,
+  Briefcase
 } from 'lucide-react';
+import logo from '../assets/logo.png'; 
+import signatureImg from '../assets/signature.png'; // Authorized signature image
 
 const StaffIdCardModal = ({ user, onClose }) => {
   if (!user) return null;
 
-  const printRef = useRef(null);
+  const idCardRef = useRef(null);
 
-  // Helper to handle image paths correctly
+  // --- HELPER: Image URL ---
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
@@ -31,314 +35,322 @@ const StaffIdCardModal = ({ user, onClose }) => {
 
   const status = (user.status || 'Active').toLowerCase();
   const isActive = status === 'active';
-
   const roleLabel = (user.role || 'STAFF').toString().replaceAll('_', ' ').toUpperCase();
-  const deptName = user.department?.name || 'Unassigned';
 
+  // Handle Departments
+  const getDepartmentString = () => {
+    if (user.departments && user.departments.length > 0) {
+        return user.departments.map(d => d.name).join(', ');
+    }
+    if (user.department?.name) return user.department.name;
+    return 'General Staff';
+  };
+  const deptDisplay = getDepartmentString();
+
+  // --- PRINT FUNCTION ---
   const handlePrint = () => {
-    // Print ONLY the card area using a temporary print stylesheet
-    const content = printRef.current;
+    const content = idCardRef.current;
     if (!content) return;
 
     const printWindow = window.open('', '_blank', 'width=900,height=650');
     if (!printWindow) return;
 
-    const styles = `
-      <style>
-        @page { size: A4; margin: 16mm; }
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: #fff; }
-        .print-wrap { width: 100%; }
-        /* Optional: prevent awkward breaks */
-        .no-break { break-inside: avoid; page-break-inside: avoid; }
-      </style>
-    `;
+    const htmlContent = content.innerHTML;
 
     printWindow.document.open();
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Staff ID Card</title>
-          ${styles}
+          <title>ID CARD - ${user.name}</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            @page { size: A4 portrait; margin: 0; }
+            body { 
+                margin: 0; padding: 20px; background: white;
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+                display: flex; flex-direction: column; align-items: center; gap: 20px;
+            }
+            .id-card-side {
+                width: 85.6mm !important; height: 54mm !important;
+                border: 1px dashed #ccc; position: relative; overflow: hidden;
+                background-color: white !important; display: flex; flex-direction: column;
+                page-break-inside: avoid;
+            }
+            /* Custom Fonts adjustments for print */
+            .print-text-shadow { text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+          </style>
         </head>
         <body>
-          <div class="print-wrap">
-            ${content.outerHTML}
-          </div>
+          <div class="print-wrapper">${htmlContent}</div>
         </body>
       </html>
     `);
     printWindow.document.close();
 
-    // Wait a bit for images to load then print
     setTimeout(() => {
       printWindow.focus();
       printWindow.print();
-      printWindow.close();
-    }, 600);
+    }, 1000);
   };
 
   return (
     <div className="fixed inset-0 z-[9999] bg-white dark:bg-gray-900 overflow-y-auto animate-in fade-in duration-200 transition-colors duration-300">
-      {/* Top actions (close + print) */}
+      
+      {/* Top Actions */}
       <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[110] flex items-center gap-2">
-        <button
-          onClick={handlePrint}
-          className="inline-flex items-center gap-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur border border-slate-200 dark:border-gray-700 px-4 py-2 text-slate-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-white shadow-sm transition"
-        >
-          <Printer size={18} />
-          <span className="text-sm font-extrabold hidden sm:inline">Print ID</span>
+        <button onClick={handlePrint} className="inline-flex items-center gap-2 rounded-full bg-emerald-600 border border-emerald-500 px-6 py-2 text-white hover:bg-emerald-700 shadow-lg active:scale-95 transition">
+          <Printer size={18} /> <span className="text-sm font-bold">Print ID Card</span>
         </button>
-
-        <button
-          onClick={onClose}
-          className="inline-flex items-center justify-center rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur border border-slate-200 dark:border-gray-700 p-3 text-slate-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-white shadow-sm transition"
-          aria-label="Close"
-        >
+        <button onClick={onClose} className="inline-flex items-center justify-center rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur border border-slate-200 dark:border-gray-700 p-3 text-slate-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 shadow-sm transition">
           <X size={22} />
         </button>
       </div>
 
+      {/* =========================================================
+          SCREEN VIEW: DETAILED PROFILE
+          (Includes Joined Date, LinkedIn, Emergency Relationship)
+         ========================================================= */}
       <div className="min-h-screen flex flex-col">
-        {/* HERO (Kept dark gradient as it's a specific design choice) */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-800 text-white">
-          {/* Soft glow */}
-          <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
-
-          <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-28 sm:pb-32">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-              {/* Left */}
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] sm:text-xs font-extrabold tracking-widest">
-                    {roleLabel}
-                  </span>
-
+        {/* Hero Header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 text-white pb-32">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="relative z-10 max-w-5xl mx-auto px-6 pt-12">
+            <div className="flex flex-col gap-4">
+               <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 bg-white/10 border border-white/20 rounded-full text-xs font-bold tracking-wider">{roleLabel}</span>
                   {isActive ? (
-                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-[10px] sm:text-xs font-extrabold text-emerald-100">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                      ACTIVE
-                    </span>
+                    <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-xs font-bold text-emerald-200"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ACTIVE</span>
                   ) : (
-                    <span className="inline-flex items-center gap-2 rounded-full border border-red-300/20 bg-red-400/10 px-3 py-1 text-[10px] sm:text-xs font-extrabold text-red-100">
-                      SUSPENDED
-                    </span>
+                    <span className="px-3 py-1 bg-red-500/20 border border-red-400/30 rounded-full text-xs font-bold text-red-200">SUSPENDED</span>
                   )}
-
-                  {user.position ? (
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] sm:text-xs font-bold text-white/90">
-                      {user.position}
-                    </span>
-                  ) : null}
-                </div>
-
-                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight break-words">
-                  {user.name}
-                </h1>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-white/85">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold">
-                    <Building2 size={14} className="text-emerald-200" />
-                    {deptName}
-                  </span>
-
-                  {user.createdAt ? (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold">
-                      <Clock size={14} className="text-emerald-200" />
-                      Joined {new Date(user.createdAt).toLocaleDateString()}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Right mini panel */}
-              <div className="w-full lg:w-auto">
-                <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur px-4 py-3">
-                  <p className="text-[10px] uppercase font-extrabold tracking-[0.2em] text-emerald-200/90">
-                    Department
-                  </p>
-                  <p className="mt-1 text-lg font-bold text-white break-words">{deptName}</p>
-                </div>
-              </div>
+               </div>
+               <h1 className="text-5xl font-extrabold tracking-tight">{user.name}</h1>
+               <div className="flex items-center gap-4 text-emerald-100/80 text-sm font-medium">
+                  <span className="flex items-center gap-2"><Briefcase size={16}/> {user.position || 'Staff Member'}</span>
+                  <span className="flex items-center gap-2"><Building2 size={16}/> {deptDisplay}</span>
+               </div>
             </div>
           </div>
         </div>
 
-        {/* BODY */}
-        <div className="flex-1 bg-slate-50 dark:bg-gray-900 transition-colors duration-300">
-          {/* Safer overlap so header never hides photo */}
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 pb-16">
-            {/* PRINT AREA START */}
-            <div ref={printRef} className="no-break">
-              {/* Profile + Summary */}
-              <div className="rounded-3xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-sm p-4 sm:p-6 transition-colors duration-300">
-                <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
-                  {/* Profile */}
-                  <div className="bg-white dark:bg-gray-800 p-2 rounded-[2rem] shadow-xl border border-slate-200 dark:border-gray-700 inline-block transition-colors">
-                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-[1.6rem] overflow-hidden bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-4xl sm:text-5xl font-extrabold text-emerald-700 dark:text-emerald-400 border border-slate-200 dark:border-gray-700">
-                      {user.profilePicture ? (
-                        <img
-                          src={getImageUrl(user.profilePicture)}
-                          className="w-full h-full object-cover"
-                          alt="Profile"
-                        />
-                      ) : (
-                        (user.name?.[0] || '?').toUpperCase()
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Summary */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase font-extrabold tracking-[0.2em] text-slate-400 dark:text-gray-500">
-                      Quick Summary
-                    </p>
-
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <MiniPill icon={<Mail size={14} />} label="Email" value={user.email} />
-                      <MiniPill icon={<Phone size={14} />} label="Phone" value={user.phone} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Main grid */}
-              <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left */}
-                <div className="lg:col-span-2 space-y-6">
-                  <SectionCard
-                    title="Personal Details"
-                    icon={<User size={18} className="text-emerald-600 dark:text-emerald-400" />}
-                  >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-                      <InfoItem label="Email Address" value={user.email} icon={<Mail size={16} />} />
-                      <InfoItem label="Phone Number" value={user.phone} icon={<Phone size={16} />} />
-                      <InfoItem
-                        label="Date of Birth"
-                        value={user.dob ? new Date(user.dob).toLocaleDateString() : 'N/A'}
-                        icon={<Calendar size={16} />}
-                      />
-                      <InfoItem label="Gender" value={user.gender} icon={<User size={16} />} />
-                    </div>
-                  </SectionCard>
-
-                  <SectionCard
-                    title="Security & Location"
-                    icon={<Shield size={18} className="text-emerald-600 dark:text-emerald-400" />}
-                  >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-                      <InfoItem label="NIN (National ID)" value={user.nin} icon={<FileText size={16} />} />
-                      <InfoItem label="Home Address" value={user.address} icon={<MapPin size={16} />} />
-                    </div>
-                  </SectionCard>
+        {/* Profile Details Body */}
+        <div className="flex-1 bg-slate-50 dark:bg-gray-900 transition-colors -mt-20">
+          <div className="max-w-5xl mx-auto px-6 pb-20">
+             
+             {/* Main Card */}
+             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-slate-100 dark:border-gray-700 p-8 flex flex-col md:flex-row gap-8 items-start">
+                {/* Photo */}
+                <div className="w-40 h-40 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-700 shadow-2xl shrink-0 bg-gray-100">
+                    <img src={getImageUrl(user.profilePicture) || "https://via.placeholder.com/150"} className="w-full h-full object-cover" alt="Profile" />
                 </div>
 
-                {/* Right */}
-                <div className="space-y-6">
-                  <div className="rounded-3xl border border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 p-5 sm:p-6 transition-colors">
-                    <h3 className="text-sm font-extrabold text-red-900 dark:text-red-400 mb-4 flex items-center gap-2">
-                      <Heart size={18} className="text-red-600 dark:text-red-500" />
-                      Emergency Contact
-                    </h3>
-
-                    <div className="space-y-4">
-                      <InfoItem label="Name" value={user.emergencyContact?.name} />
-                      <InfoItem label="Relationship" value={user.emergencyContact?.relationship} />
-
-                      <div className="pt-4 border-t border-red-200 dark:border-red-800">
-                        <p className="text-[10px] font-extrabold text-red-400 uppercase tracking-[0.2em] mb-1">
-                          Emergency Phone
-                        </p>
-                        <p className="text-lg font-extrabold text-red-700 dark:text-red-400 break-words">
-                          {user.emergencyContact?.phone || 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {(user.bio || user.linkedin) && (
-                    <div className="rounded-3xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-5 sm:p-6 shadow-sm transition-colors">
-                      {user.linkedin && (
-                        <a
-                          href={user.linkedin}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-3 font-extrabold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition"
-                        >
-                          <span className="p-2 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800">
-                            <Linkedin size={18} />
-                          </span>
-                          View LinkedIn Profile
-                        </a>
-                      )}
-
-                      {user.bio && (
-                        <div className={`${user.linkedin ? 'mt-5' : ''}`}>
-                          <p className="text-[10px] font-extrabold text-slate-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-2">
-                            About
-                          </p>
-                          <p className="text-sm text-slate-600 dark:text-gray-300 leading-relaxed italic break-words">
-                            “{user.bio}”
-                          </p>
+                {/* Details Grid */}
+                <div className="flex-1 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Personal Info */}
+                        <div className="space-y-4">
+                            <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-2"><User size={14}/> Personal Details</h3>
+                            <InfoItem label="Email" value={user.email} />
+                            <InfoItem label="Phone" value={user.phone} />
+                            <InfoItem label="Date Joined" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'} />
+                            <InfoItem label="Address" value={user.address} />
                         </div>
-                      )}
-                    </div>
-                  )}
 
-                  {user.createdAt ? (
-                    <div className="text-center text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-600 opacity-70 flex items-center justify-center gap-2">
-                      <Clock size={10} />
-                      Joined {new Date(user.createdAt).toLocaleDateString()}
+                        {/* Emergency & Socials */}
+                        <div className="space-y-6">
+                             {/* Emergency Block */}
+                             <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/20">
+                                <h3 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-widest flex items-center gap-2 mb-3"><Heart size={14}/> Emergency Contact</h3>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between">
+                                        <span className="text-xs text-red-400 font-bold uppercase">Name</span>
+                                        <span className="text-sm font-bold text-red-900 dark:text-red-200">{user.emergencyContact?.name || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-xs text-red-400 font-bold uppercase">Relationship</span>
+                                        <span className="text-sm font-bold text-red-900 dark:text-red-200">{user.emergencyContact?.relationship || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex justify-between border-t border-red-200 dark:border-red-800 pt-2 mt-2">
+                                        <span className="text-xs text-red-400 font-bold uppercase">Phone</span>
+                                        <span className="text-sm font-bold text-red-900 dark:text-red-200">{user.emergencyContact?.phone || 'N/A'}</span>
+                                    </div>
+                                </div>
+                             </div>
+
+                             {/* LinkedIn Button */}
+                             {user.linkedin && (
+                                <a href={user.linkedin} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#0077b5] text-white font-bold hover:bg-[#006097] transition shadow-md hover:shadow-lg">
+                                    <Linkedin size={20}/> View LinkedIn Profile
+                                </a>
+                             )}
+                        </div>
                     </div>
-                  ) : null}
                 </div>
-              </div>
-            </div>
-            {/* PRINT AREA END */}
+             </div>
           </div>
         </div>
       </div>
+
+      {/* =========================================================
+          PRINT LAYOUT (HIDDEN) - CR80 PLASTIC CARD
+          Updated Style: Modern Curve Design, Original Logo, Full Name
+         ========================================================= */}
+      <div className="fixed left-[-9999px] top-0" aria-hidden="true">
+        <div ref={idCardRef}>
+          
+          {/* --- FRONT SIDE (Modern Style) --- */}
+          <div className="id-card-side flex flex-col relative bg-white overflow-hidden">
+             
+             {/* DESIGN: Modern Curves Background */}
+             <div className="absolute top-0 left-0 w-full h-full z-0">
+                {/* Main Green Curve */}
+                <div className="absolute top-0 right-0 w-[80%] h-[120%] bg-emerald-900 origin-top-right -rotate-12 rounded-bl-[100px] translate-x-10 -translate-y-4"></div>
+                {/* Accent Gold/Yellow Curve for Style */}
+                <div className="absolute top-0 right-0 w-[82%] h-[120%] bg-amber-400 origin-top-right -rotate-12 rounded-bl-[100px] translate-x-8 -translate-y-4 -z-10"></div>
+                {/* Subtle Texture */}
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gray-100 rounded-tr-full opacity-50"></div>
+             </div>
+
+             {/* HEADER: Logo (Original Colors) & Company Name */}
+             <div className="relative z-10 flex items-center justify-between px-4 pt-3 pb-1">
+                 {/* Logo - No filter, original colors */}
+                 <div className="bg-white/90 p-1 rounded-lg shadow-sm">
+                    <img src={logo} alt="Logo" className="h-8 w-8 object-contain" /> 
+                 </div>
+                 <div className="text-right">
+                     <h1 className="text-white font-black text-xs tracking-widest uppercase">Dopals Tech</h1>
+                     <p className="text-emerald-200 text-[6px] tracking-widest uppercase">Future is Now</p>
+                 </div>
+             </div>
+
+             {/* CONTENT: Photo & Details */}
+             <div className="relative z-10 flex flex-row items-center px-4 mt-1 gap-3 w-full">
+                {/* Photo with double border ring */}
+                <div className="relative shrink-0">
+                    <div className="w-[28mm] h-[28mm] rounded-xl overflow-hidden border-2 border-white shadow-lg bg-gray-200">
+                        <img src={getImageUrl(user.profilePicture) || "https://via.placeholder.com/150"} className="w-full h-full object-cover" crossOrigin="anonymous"/>
+                    </div>
+                    {/* Active Dot */}
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                </div>
+
+                {/* Text Details */}
+                <div className="flex-1 min-w-0 text-white">
+                    {/* NAME - No truncation, allow wrap, tight leading */}
+                    <h2 className="text-white font-black text-sm uppercase leading-tight mb-1 break-words drop-shadow-md">
+                        {user.name}
+                    </h2>
+                    <div className="inline-block bg-amber-400 text-emerald-900 text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wide mb-2 shadow-sm">
+                        {user.position || "Staff"}
+                    </div>
+
+                    <div className="space-y-[2px] text-emerald-100/90">
+                        <div className="flex text-[7px] items-center">
+                            <span className="w-10 font-bold opacity-70">ID NO:</span>
+                            <span className="font-mono font-bold text-white">DOP-{user._id ? user._id.slice(-6).toUpperCase() : '000'}</span>
+                        </div>
+                        <div className="flex text-[7px] items-start">
+                            <span className="w-10 font-bold opacity-70 shrink-0">DEPT:</span>
+                            <span className="font-bold text-white leading-tight">{deptDisplay}</span>
+                        </div>
+                        <div className="flex text-[7px] items-center">
+                            <span className="w-10 font-bold opacity-70">JOINED:</span>
+                            <span className="font-bold text-white">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+             </div>
+
+             {/* FOOTER STRIP */}
+             <div className="mt-auto relative z-10 px-4 pb-2 flex justify-between items-end">
+                <div className="text-[6px] text-gray-500 font-bold bg-white/80 px-2 py-0.5 rounded backdrop-blur-sm">
+                    EXP: DEC {new Date().getFullYear() + 2}
+                </div>
+                <QrCode size={24} className="text-emerald-900 bg-white p-0.5 rounded shadow-sm"/>
+             </div>
+          </div>
+
+          {/* --- BACK SIDE --- */}
+          <div className="id-card-side flex flex-col p-4 relative bg-white">
+             {/* Header */}
+             <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
+                <h3 className="text-[9px] font-black text-emerald-900 uppercase tracking-widest">Dopals Technologies</h3>
+                <div className="text-[6px] text-gray-400">RC: 12345678</div>
+             </div>
+
+             <div className="flex-1 space-y-3">
+                 {/* Policies */}
+                 <div>
+                    <h4 className="text-[7px] font-bold text-gray-500 uppercase mb-0.5">Card Policy</h4>
+                    <p className="text-[6px] text-gray-400 leading-tight text-justify">
+                        This card remains the property of Dopals Technologies. It is non-transferable and must be presented upon request. If found, please return to the address below.
+                    </p>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-2">
+                     {/* Home Address */}
+                     <div>
+                        <h4 className="text-[7px] font-bold text-emerald-700 uppercase mb-0.5">Staff Address</h4>
+                        <p className="text-[7px] text-gray-800 font-bold leading-tight">
+                            {user.address || 'No address provided'}
+                        </p>
+                     </div>
+
+                     {/* Emergency Contact (Name + Relation + Phone) */}
+                     <div>
+                        <h4 className="text-[7px] font-bold text-red-600 uppercase mb-0.5">Emergency ({user.emergencyContact?.relationship || 'N/A'})</h4>
+                        <p className="text-[7px] text-gray-800 font-bold leading-tight">
+                            {user.emergencyContact?.name || 'N/A'}
+                        </p>
+                        <p className="text-[7px] text-gray-600 font-mono">
+                            {user.emergencyContact?.phone || 'N/A'}
+                        </p>
+                     </div>
+                 </div>
+             </div>
+
+             {/* Footer */}
+             <div className="mt-auto">
+                <div className="flex justify-between items-end mb-2">
+                   <div className="text-[6px] text-gray-500">
+                      <p><b>HR Dept:</b> hr@dopalstech.com</p>
+                      <p><b>Emergency:</b> +234 800 123 4567</p>
+                   </div>
+                   {/* ✅ FIXED SIGNATURE AREA */}
+<div className="flex flex-col items-center gap-0.5">
+    {/* Container: Wider (w-32) and Taller (h-12) */}
+    <div className="w-32 border-b border-gray-400 pb-0.5 mb-0.5 flex justify-center items-end h-12"> 
+        <img 
+           src={signatureImg} 
+           alt="Signature" 
+           // CSS Filters: mix-blend-multiply removes white background, contrast makes it darker
+           className="h-full w-auto object-contain object-bottom mix-blend-multiply contrast-125" 
+        />
+    </div>
+    <p className="text-[5px] text-gray-500 uppercase tracking-widest font-bold">Authorized Signature</p>
+</div>
+                </div>
+                <div className="bg-emerald-900 text-white text-center py-1 rounded-sm">
+                   <p className="text-[6px] font-bold tracking-[0.2em]">WWW.DOPALSTECH.COM</p>
+                </div>
+             </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   );
 };
 
-/* ---------------- UI SUB COMPONENTS ---------------- */
-
-const SectionCard = ({ title, icon, children }) => (
-  <div className="rounded-3xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-5 sm:p-7 shadow-sm transition-colors duration-300">
-    <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
-      {icon}
-      {title}
-    </h3>
-    {children}
-  </div>
-);
-
-const MiniPill = ({ icon, label, value }) => (
-  <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-700/30 px-3 py-2 flex items-start gap-2 min-w-0 transition-colors">
-    <span className="mt-0.5 text-slate-400 dark:text-gray-500">{icon}</span>
-    <div className="min-w-0">
-      <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">
-        {label}
-      </div>
-      <div className="text-sm font-semibold text-slate-800 dark:text-gray-200 truncate">{value || '—'}</div>
+// UI Helper
+const InfoItem = ({ label, value }) => (
+    <div className="flex flex-col">
+        <span className="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider">{label}</span>
+        <span className="text-sm font-bold text-slate-900 dark:text-white break-words">{value || 'N/A'}</span>
     </div>
-  </div>
-);
-
-const InfoItem = ({ label, value, icon }) => (
-  <div className="min-w-0">
-    <div className="flex items-center gap-2 mb-1">
-      {icon ? <span className="text-slate-400 dark:text-gray-500">{icon}</span> : null}
-      <span className="text-[10px] font-extrabold text-slate-400 dark:text-gray-500 uppercase tracking-[0.2em]">
-        {label}
-      </span>
-    </div>
-    <p className="font-semibold text-slate-900 dark:text-gray-200 text-sm sm:text-base break-words leading-tight">
-      {value || <span className="text-slate-300 dark:text-gray-600 italic font-semibold">Not Provided</span>}
-    </p>
-  </div>
 );
 
 export default StaffIdCardModal;

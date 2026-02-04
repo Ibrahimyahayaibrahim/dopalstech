@@ -1,42 +1,36 @@
 import express from 'express';
+import { protect, admin } from '../middleware/auth.middleware.js';
 import { 
-    inviteUser, 
     getAllUsers, 
-    getUserProfile, 
-    updateUserProfile, 
-    updateProfileImage,
+    inviteUser, 
+    toggleUserStatus, 
     deleteUser,
-    removeFromDepartment, 
-    migrateStaff,         
-    addToDepartment,
-    toggleUserStatus,
-    updateUserPassword 
+    getUserById, // ✅ Imported correctly
+    getUserProfile, // For 'me' route (optional but good practice)
+    updateUserProfile,
+    updateProfileImage
 } from '../controllers/user.controller.js';
-import { protect } from '../middleware/auth.middleware.js';
-
-// 👇 ✅ CHANGE THIS LINE: Import from your Cloudinary config, not the old middleware
-import { upload } from '../middleware/upload.middleware.js';
+import {upload} from '../middleware/upload.middleware.js'; // Ensure you have this or remove the profile route if not needed here
 
 const router = express.Router();
 
-// --- User Management Routes ---
-router.post('/invite', protect, inviteUser);
+// --- GENERAL ROUTES ---
 router.get('/', protect, getAllUsers);
-router.delete('/:id', protect, deleteUser);
-router.put('/:id/status', protect, toggleUserStatus);
+router.post('/invite', protect, admin, inviteUser);
 
-// --- Profile Routes ---
+// --- SPECIFIC USER ROUTES ---
+// ⚠️ IMPORTANT: Put '/profile' BEFORE '/:id' so "profile" isn't treated as an ID
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
+router.put('/profile/image', protect, upload.single('image'), updateProfileImage);
 
-// 👇 ✅ Ensure 'profilePicture' matches the name your Frontend uses in FormData.append('profilePicture', file)
-router.put('/profile/image', protect, upload.single('profilePicture'), updateProfileImage);
+// 3. ✅ Get Single User by ID
+router.get('/:id', protect, getUserById);
 
-router.put('/password', protect, updateUserPassword);
+// 4. Update Status
+router.put('/:id/status', protect, admin, toggleUserStatus);
 
-// --- Department Management Routes ---
-router.post('/remove-dept', protect, removeFromDepartment);
-router.post('/migrate', protect, migrateStaff);
-router.post('/add-to-dept', protect, addToDepartment); 
+// 5. Delete User
+router.delete('/:id', protect, admin, deleteUser);
 
 export default router;

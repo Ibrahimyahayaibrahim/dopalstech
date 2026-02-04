@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom'; // 👈 Import Navigation Hook
 import API from '../services/api';
 import {
   Trash2,
@@ -18,14 +19,14 @@ import {
   Mail,
   User,
 } from 'lucide-react';
-import StaffIdCardModal from './StaffIdCardModal';
 
 const StaffList = ({ searchQuery, currentUser }) => {
+  const navigate = useNavigate(); // 👈 Initialize Navigation
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [selectedUser, setSelectedUser] = useState(null);
+  // Removed selectedUser state since we are navigating to a new page now
 
   // Filters
   const [deptFilter, setDeptFilter] = useState('All');
@@ -51,7 +52,6 @@ const StaffList = ({ searchQuery, currentUser }) => {
 
   const roleLabel = (role) => (role || 'STAFF').toString().replaceAll('_', ' ');
   
-  // ✅ Updated for Dark Mode Visibility
   const statusColor = (status) => {
     if (status === 'Active') return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
     if (status === 'Pending') return 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800';
@@ -94,7 +94,7 @@ const StaffList = ({ searchQuery, currentUser }) => {
     fetchData();
   }, []);
 
-  // Close menu on outside click (works per-row)
+  // Close menu on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       const activeRef = activeMenuId ? menuRefs.current[activeMenuId] : null;
@@ -194,7 +194,6 @@ const StaffList = ({ searchQuery, currentUser }) => {
               {filteredStaff.length} Members
             </span>
 
-            {/* small search hint */}
             {searchQuery ? (
               <span className="hidden sm:inline-flex items-center gap-2 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 px-2 py-1 rounded-full">
                 <Search size={12} /> Filtered
@@ -246,7 +245,7 @@ const StaffList = ({ searchQuery, currentUser }) => {
               return (
                 <div
                   key={user._id}
-                  onClick={() => setSelectedUser(user)}
+                  onClick={() => navigate(`/staff/${user._id}`)} // 👈 Updated Navigation
                   className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 active:scale-[0.99] transition cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
@@ -381,7 +380,7 @@ const StaffList = ({ searchQuery, currentUser }) => {
                 currentItems.map((user) => (
                   <tr
                     key={user._id}
-                    onClick={() => setSelectedUser(user)}
+                    onClick={() => navigate(`/staff/${user._id}`)} // 👈 Updated Navigation
                     className="hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer group"
                   >
                     {/* EMPLOYEE */}
@@ -590,8 +589,6 @@ const StaffList = ({ searchQuery, currentUser }) => {
           </div>
         )}
       </div>
-
-      {selectedUser && <StaffIdCardModal user={selectedUser} onClose={() => setSelectedUser(null)} />}
     </>
   );
 };

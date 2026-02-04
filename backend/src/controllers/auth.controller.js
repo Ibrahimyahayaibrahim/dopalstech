@@ -1,7 +1,7 @@
 import User from '../models/user.model.js';
 import generateToken from '../utils/generateToken.js';
 import crypto from 'crypto';
-import { sendEmail } from '../services/brevoService.js'; // ✅ Using the new Brevo service
+import { sendEmail } from '../services/email.service.js'; // ✅ Using the new Brevo service
 
 // --- LOGIN USER ---
 export const login = async (req, res) => {

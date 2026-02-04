@@ -1,36 +1,28 @@
-import { 
-  TransactionalEmailsApi, 
-  SendSmtpEmail,
-  TransactionalEmailsApiApiKeys
-} from '@getbrevo/brevo';
+import { Resend } from 'resend';
 
-// 1. Instantiate the API Client
-const apiInstance = new TransactionalEmailsApi();
+// Use your personal API Key in .env
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// 2. Set the API Key properly
-// Make sure your .env has BREVO_API_KEY set
-apiInstance.setApiKey(TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-
-// 3. Define and EXPORT the function
-export const sendEmail = async ({ email, subject, html, text }) => {
-  const sendSmtpEmail = new SendSmtpEmail();
-
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
-  sendSmtpEmail.sender = { name: "Dopals Tech Team", email: process.env.BREVO_SENDER_EMAIL }; 
-  sendSmtpEmail.to = [{ email: email }];
-  
-  if (text) {
-      sendSmtpEmail.textContent = text;
-  }
-
+export const sendEmail = async ({ email, subject, html }) => {
   try {
-    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log('✅ Brevo Email Sent successfully');
+    const { data, error } = await resend.emails.send({
+      // Must be 'onboarding@resend.dev' for unverified personal accounts
+      from: 'Dopals Test <onboarding@resend.dev>',
+      // IMPORTANT: On free tier, 'to' must be YOUR signup email
+      to: [email], 
+      subject: subject,
+      html: html,
+    });
+
+    if (error) {
+      console.error('❌ Resend Error:', error.message);
+      throw new Error(error.message);
+    }
+
+    console.log('✅ Test Email Sent successfully:', data.id);
     return data;
-  } catch (error) {
-    console.error('❌ Brevo Error:', error.body || error);
-    // We throw the error so the controller knows it failed
-    throw new Error('Email could not be sent via Brevo');
+  } catch (err) {
+    console.error('❌ Email failed:', err.message);
+    throw err;
   }
 };

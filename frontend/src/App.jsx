@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 // ✅ IMPORT CONTEXTS
 import { UIProvider } from './context/UIContext';
-import { ThemeProvider } from './context/ThemeContext'; // 👈 IMPORT THIS
+import { ThemeProvider } from './context/ThemeContext'; 
 
 import { runDoctor } from './utils/doctor';
 
@@ -14,7 +14,8 @@ import ResetPassword from './pages/ResetPassword';
 import AdminDashboard from './pages/AdminDashboard';
 import DepartmentDetails from './pages/DepartmentDetails';
 import ProgramDetails from './pages/ProgramDetails'; 
-import PublicRegistration from './pages/PublicRegistration'; 
+import PublicRegistration from './pages/PublicRegistration';
+import StaffDetails from './pages/StaffDetails'; // 👈 NEW IMPORT
 
 // --- COMPONENTS ---
 import DepartmentDispatcher from './components/DepartmentDispatcher'; 
@@ -31,7 +32,7 @@ function App() {
   return (
     // ✅ WRAP THE APP IN PROVIDERS
     <UIProvider>
-      <ThemeProvider> {/* 👈 WRAP HERE (Inside UIProvider) */}
+      <ThemeProvider> 
         <Router>
           <Routes>
             
@@ -50,6 +51,9 @@ function App() {
                 {/* Core App */}
                 <Route path="/dashboard" element={<AdminDashboard />} />
                 
+                {/* Staff Details (New Dedicated Page) */}
+                <Route path="/staff/:id" element={<StaffDetails />} /> {/* 👈 NEW ROUTE */}
+
                 {/* Department Logic */}
                 <Route path="/departments" element={<DepartmentDispatcher />} />
                 <Route path="/departments/all" element={<DepartmentList mode="ALL" />} />
