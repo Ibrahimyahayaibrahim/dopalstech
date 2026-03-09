@@ -1,28 +1,22 @@
-import { Resend } from 'resend';
+import * as SibApiV3Sdk from '@getbrevo/brevo';
 
-// Use your personal API Key in .env
-const resend = new Resend(process.env.RESEND_API_KEY);
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+const apiKey = apiInstance.authentications['apiKey'];
+apiKey.apiKey = process.env.BREVO_API_KEY; // This reads the key from Render or .env
 
-export const sendEmail = async ({ email, subject, html }) => {
+export const sendEmail = async ({ email, subject, html, text }) => {
+  const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+  
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html;
+  sendSmtpEmail.textContent = text;
+  sendSmtpEmail.sender = { "name": "Dopals Tech", "email": "noreply@dopalstech.com" };
+  sendSmtpEmail.to = [{ "email": email }];
+
   try {
-    const { data, error } = await resend.emails.send({
-      // Must be 'onboarding@resend.dev' for unverified personal accounts
-      from: 'Dopals Test <onboarding@resend.dev>',
-      // IMPORTANT: On free tier, 'to' must be YOUR signup email
-      to: [email], 
-      subject: subject,
-      html: html,
-    });
-
-    if (error) {
-      console.error('❌ Resend Error:', error.message);
-      throw new Error(error.message);
-    }
-
-    console.log('✅ Test Email Sent successfully:', data.id);
-    return data;
-  } catch (err) {
-    console.error('❌ Email failed:', err.message);
-    throw err;
+    return await apiInstance.sendTransacEmail(sendSmtpEmail);
+  } catch (error) {
+    console.error("Brevo Error:", error);
+    throw error;
   }
 };

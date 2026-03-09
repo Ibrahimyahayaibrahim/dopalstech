@@ -30,6 +30,7 @@ export const inviteUser = async (req, res) => {
         }
     }
 
+    // Generate a temporary password if one isn't provided
     const generatedPassword = Math.random().toString(36).slice(-8) + "1!";
     const finalPassword = password || generatedPassword;
 
@@ -97,6 +98,7 @@ export const getAllUsers = async (req, res) => {
         const currentUser = req.user;
         let query = {};
 
+        // If simple Admin, only show users in their department
         if (currentUser.role === 'ADMIN') {
             const adminDeptIds = currentUser.departments.map(d => d._id || d);
             query.departments = { $in: adminDeptIds };
@@ -113,33 +115,25 @@ export const getAllUsers = async (req, res) => {
     }
 };
 
-// --- 3. GET SINGLE USER BY ID (REQUIRED FOR 404 FIX) ---
+// --- 3. GET SINGLE USER BY ID ---
 export const getUserById = async (req, res) => {
     const { id } = req.params;
-    console.log(`📢 HIT: getUserById for ID: ${id}`); // Debug Log
-
     try {
-        // Validate ID format
         if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-            console.log("❌ Invalid ID Format");
             return res.status(404).json({ message: "Invalid User ID format" });
         }
 
-        const user = await User.findById(id).populate('departments', 'name');
+        const user = await User.findById(id).populate('departments', 'name').select('-password');
         
-        if (!user) {
-            console.log("❌ User not found in DB");
-            return res.status(404).json({ message: "User not found" });
-        }
+        if (!user) return res.status(404).json({ message: "User not found" });
 
         res.json(user);
     } catch (error) {
-        console.error("Get Single User Error:", error);
         res.status(500).json({ message: error.message });
     }
 };
 
-// --- 4. GET USER PROFILE (LOGGED IN USER) ---
+// --- 4. GET USER PROFILE (FOR LOGGED IN USER) ---
 export const getUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).populate('departments', 'name');
@@ -174,7 +168,7 @@ export const updateUserProfile = async (req, res) => {
             if (req.body.email && req.body.email !== user.email) {
                 const emailExists = await User.findOne({ email: req.body.email });
                 if (emailExists) {
-                    return res.status(400).json({ message: "This email is already in use by another account." });
+                    return res.status(400).json({ message: "This email is already in use." });
                 }
                 user.email = req.body.email;
             }
@@ -211,16 +205,8 @@ export const updateUserProfile = async (req, res) => {
                 name: updatedUser.name,
                 email: updatedUser.email,
                 role: updatedUser.role,
-                departments: updatedUser.departments,
-                position: updatedUser.position,
-                profilePicture: updatedUser.profilePicture,
                 isProfileComplete: updatedUser.isProfileComplete, 
-                status: updatedUser.status,
-                phone: updatedUser.phone,
-                gender: updatedUser.gender,
-                dob: updatedUser.dob,
-                address: updatedUser.address,
-                emergencyContact: updatedUser.emergencyContact
+                status: updatedUser.status
             });
         } else {
             res.status(404).json({ message: 'User not found' });
@@ -234,19 +220,17 @@ export const updateUserProfile = async (req, res) => {
 // --- 6. UPDATE PROFILE IMAGE ---
 export const updateProfileImage = async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: "No image file provided" });
-        }
+        if (!req.file) return res.status(400).json({ message: "No image file provided" });
+        
         const user = await User.findById(req.user._id);
         if (user) {
             user.profilePicture = req.file.path; 
             await user.save();
-            res.json({ message: "Image uploaded successfully", profilePicture: user.profilePicture });
+            res.json({ message: "Image updated!", profilePicture: user.profilePicture });
         } else {
             res.status(404).json({ message: "User not found" });
         }
     } catch (error) {
-        console.error("Image Upload Error:", error);
         res.status(500).json({ message: "Server error uploading image" });
     }
 };
@@ -256,9 +240,7 @@ export const deleteUser = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (user) {
-            if (user.role === 'SUPER_ADMIN') {
-                 return res.status(400).json({ message: "Cannot delete Super Admin" });
-            }
+            if (user.role === 'SUPER_ADMIN') return res.status(400).json({ message: "Cannot delete Super Admin" });
             await User.deleteOne({ _id: user._id });
             res.json({ message: 'User removed successfully' });
         } else {
@@ -269,7 +251,7 @@ export const deleteUser = async (req, res) => {
     }
 };
 
-// --- 8. TOGGLE USER STATUS ---
+// --- 8. TOGGLE USER STATUS (Activate/Suspend) ---
 export const toggleUserStatus = async (req, res) => {
     try {
         const { id } = req.params;
@@ -280,25 +262,21 @@ export const toggleUserStatus = async (req, res) => {
         const currentUser = req.user;
         
         if (currentUser.role === 'ADMIN') {
-            if (userToUpdate.role !== 'STAFF') return res.status(403).json({ message: "Admins cannot suspend other Admins." });
+            if (userToUpdate.role !== 'STAFF') return res.status(403).json({ message: "Forbidden: Admins cannot manage other Admins." });
             
             const adminDepts = currentUser.departments.map(d => (d._id || d).toString());
             const userDepts = userToUpdate.departments.map(d => (d._id || d).toString());
             const hasAccess = adminDepts.some(deptId => userDepts.includes(deptId));
 
-            if (!hasAccess) return res.status(403).json({ message: "You can only manage staff in your department." });
-        } else if (currentUser.role !== 'SUPER_ADMIN') {
-            return res.status(403).json({ message: "Access Denied" });
+            if (!hasAccess) return res.status(403).json({ message: "Forbidden: User is not in your department." });
         }
 
         const newStatus = userToUpdate.status === 'Active' ? 'Suspended' : 'Active';
         userToUpdate.status = newStatus;
         await userToUpdate.save();
 
-        res.json({ message: `User ${newStatus === 'Active' ? 'Activated' : 'Suspended'} successfully`, status: newStatus });
-
+        res.json({ message: `User ${newStatus} successfully`, status: newStatus });
     } catch (error) {
-        console.error("Status Update Error:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -334,7 +312,7 @@ export const addToDepartment = async (req, res) => {
         const { userIds, departmentId } = req.body; 
         if (!userIds || !Array.isArray(userIds) || userIds.length === 0) return res.status(400).json({ message: "No users selected" });
         await User.updateMany({ _id: { $in: userIds } }, { $addToSet: { departments: departmentId } });
-        res.json({ message: `${userIds.length} staff members added successfully.` });
+        res.json({ message: `${userIds.length} staff members added.` });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -347,6 +325,7 @@ export const updateUserPassword = async (req, res) => {
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: 'User not found' });
         if (currentPassword && !(await user.matchPassword(currentPassword))) return res.status(401).json({ message: 'Invalid current password' });
+        
         user.password = newPassword;
         await user.save();
         res.json({ message: 'Password updated successfully' });
