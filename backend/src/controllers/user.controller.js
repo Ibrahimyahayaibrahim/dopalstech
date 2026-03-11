@@ -1,6 +1,6 @@
 import User from '../models/user.model.js';
 import Department from '../models/Department.js'; 
-import { sendEmail } from '../services/brevoService.js'; 
+import { sendEmail } from '../services/email.service.js'; 
 
 // --- 1. INVITE / CREATE USER ---
 export const inviteUser = async (req, res) => {
